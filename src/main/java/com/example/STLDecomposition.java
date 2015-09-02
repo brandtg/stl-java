@@ -93,60 +93,64 @@ public class STLDecomposition {
     double[] seasonal = new double[series.length];
     double[] remainder = new double[series.length];
 
-    for (int k = 0; k < numberOfRobustnessIterations; k++) {
-      // Step 1: Detrending
-      double[] detrend = new double[series.length];
-      for (int i = 0; i < series.length; i++) {
-        detrend[i] = series[i] - trend[i];
-      }
-
-      // Get cycle sub-series with padding on either side
-      int cycleSubseriesLength = series.length / numberOfObservations;
-      double[][] cycleSubseries = new double[numberOfObservations][cycleSubseriesLength + 2];
-      double[][] cycleTimes = new double[numberOfObservations][cycleSubseriesLength + 2];
-      for (int i = 0; i < series.length; i += numberOfObservations) {
-        for (int j = 0; j < numberOfObservations; j++) {
-          int cycleIdx = i / numberOfObservations;
-          cycleSubseries[j][cycleIdx + 1] = detrend[i + j];
-          cycleTimes[j][cycleIdx + 1] = i + j;
+    for (int l = 0; l < numberOfRobustnessIterations; l++) {
+      for (int k = 0; k < numberOfInnerLoopPasses; k++) {
+        // Step 1: Detrending
+        double[] detrend = new double[series.length];
+        for (int i = 0; i < series.length; i++) {
+          detrend[i] = series[i] - trend[i];
         }
-      }
 
-      // Beginning / end times
-      for (int i = 0; i < numberOfObservations; i++) {
-        cycleTimes[i][0] = cycleTimes[i][1] - numberOfObservations;
-        cycleTimes[i][cycleTimes[i].length - 1] = cycleTimes[i][cycleTimes[i].length - 2] + numberOfObservations;
-      }
-
-      // Step 2: Cycle-subseries Smoothing
-      for (int i = 0; i < cycleSubseries.length; i++) {
-        double[] smoothed = loessSmooth(cycleTimes[i], cycleSubseries[i]);
-        cycleSubseries[i] = smoothed;
-      }
-
-      // Combine smoothed series into one
-      double[] combinedSmoothed = new double[series.length + 2 * numberOfObservations];
-      for (int i = 0; i < cycleSubseriesLength + 2; i++) {
-        for (int j = 0; j < numberOfObservations; j++) {
-          combinedSmoothed[i * numberOfObservations + j] = cycleSubseries[j][i];
+        // Get cycle sub-series with padding on either side
+        int cycleSubseriesLength = series.length / numberOfObservations;
+        double[][] cycleSubseries = new double[numberOfObservations][cycleSubseriesLength + 2];
+        double[][] cycleTimes = new double[numberOfObservations][cycleSubseriesLength + 2];
+        for (int i = 0; i < series.length; i += numberOfObservations) {
+          for (int j = 0; j < numberOfObservations; j++) {
+            int cycleIdx = i / numberOfObservations;
+            cycleSubseries[j][cycleIdx + 1] = detrend[i + j];
+            cycleTimes[j][cycleIdx + 1] = i + j;
+          }
         }
+
+        // Beginning / end times
+        for (int i = 0; i < numberOfObservations; i++) {
+          cycleTimes[i][0] = cycleTimes[i][1] - numberOfObservations;
+          cycleTimes[i][cycleTimes[i].length - 1] = cycleTimes[i][cycleTimes[i].length - 2] + numberOfObservations;
+        }
+
+        // Step 2: Cycle-subseries Smoothing
+        for (int i = 0; i < cycleSubseries.length; i++) {
+          double[] smoothed = loessSmooth(cycleTimes[i], cycleSubseries[i]);
+          cycleSubseries[i] = smoothed;
+        }
+
+        // Combine smoothed series into one
+        double[] combinedSmoothed = new double[series.length + 2 * numberOfObservations];
+        for (int i = 0; i < cycleSubseriesLength + 2; i++) {
+          for (int j = 0; j < numberOfObservations; j++) {
+            combinedSmoothed[i * numberOfObservations + j] = cycleSubseries[j][i];
+          }
+        }
+
+        // Step 3: Low-Pass Filtering of Smoothed Cycle-Subseries
+        double[] filtered = lowPassFilter(combinedSmoothed);
+
+        // Step 4: Detrending of Smoothed Cycle-Subseries
+        for (int i = 0; i < seasonal.length; i++) {
+          seasonal[i] = combinedSmoothed[i + numberOfObservations] - filtered[i + numberOfObservations];
+        }
+
+        // Step 5: Deseasonalizing
+        for (int i = 0; i < series.length; i++) {
+          trend[i] = series[i] - seasonal[i];
+        }
+
+        // Step 6: Trend Smoothing
+        trend = loessSmooth(trend);
       }
 
-      // Step 3: Low-Pass Filtering of Smoothed Cycle-Subseries
-      double[] filtered = lowPassFilter(combinedSmoothed);
-
-      // Step 4: Detrending of Smoothed Cycle-Subseries
-      for (int i = 0; i < seasonal.length; i++) {
-        seasonal[i] = combinedSmoothed[i + numberOfObservations] - filtered[i + numberOfObservations];
-      }
-
-      // Step 5: Deseasonalizing
-      for (int i = 0; i < series.length; i++) {
-        trend[i] = series[i] - seasonal[i];
-      }
-
-      // Step 6: Trend Smoothing
-      trend = loessSmooth(trend);
+      // --- Now in outer loop ---
 
       // Calculate remainder
       for (int i = 0; i < series.length; i++) {
