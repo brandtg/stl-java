@@ -7,7 +7,15 @@ import org.apache.commons.math3.analysis.interpolation.LoessInterpolator;
 import java.io.File;
 import java.io.FileOutputStream;
 
+/**
+ * Notes for meeting with Jieying:
+ *
+ * TODO: For Loess, so you need to specify degree=1 in R to be identical to Java - is this okay still, what do we lose?
+ */
 public class STLDecomposition {
+  private static final double LOESS_BANDWIDTH = 0.75; // same as R implementation
+  private static final int LOESS_ROBUSTNESS_ITERATIONS = 4; // same as R implementation
+
   private final int numberOfObservations;
   private final int numberOfInnerLoopPasses;
   private final int numberOfRobustnessIterations;
@@ -25,6 +33,12 @@ public class STLDecomposition {
    *
    * <p>
    *   The three spans (n_s, n_t, and n_l) must be at least three and odd.
+   * </p>
+   *
+   * <p>
+   *   n.b. The Java Loess implementation only does  linear local polynomial
+   *   regression, but R supports linear (degree=1), quadratic (degree=2), and
+   *   a strange degree=0 option.
    * </p>
    *
    * @param numberOfObservations
@@ -163,7 +177,7 @@ public class STLDecomposition {
   }
 
   private double[] loessSmooth(double[] times, double[] series) {
-    return new LoessInterpolator().smooth(times, series);
+    return new LoessInterpolator(LOESS_BANDWIDTH, LOESS_ROBUSTNESS_ITERATIONS).smooth(times, series);
   }
 
   private double[] movingAverage(double[] series, int window) {
