@@ -9,7 +9,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 
 public class STLDecomposition {
-  private static final double LOESS_BANDWIDTH = 0.75; // same as R implementation
   private static final int LOESS_ROBUSTNESS_ITERATIONS = 4; // same as R implementation
 
   private final Config config;
@@ -31,6 +30,11 @@ public class STLDecomposition {
    *   regression, but R supports linear (degree=1), quadratic (degree=2), and
    *   a strange degree=0 option.
    * </p>
+   *
+   * <p>
+   *   Also, the Java Loess implementation accepts "bandwidth", the fraction of source points closest
+   *   to the current point, as opposed to integral values.
+   * </p>
    */
   public STLDecomposition(Config config) {
     config.check();
@@ -44,12 +48,12 @@ public class STLDecomposition {
     private int numberOfInnerLoopPasses = 1;
     /** The number of robustness iterations of the outer loop, n_o */
     private int numberOfRobustnessIterations = 1;
-    /** The smoothing parameter for the low pass filter, n_l */
-    private int lowPassFilterSmoothing = 3; // TODO: How to use?
-    /** The smoothing parameter for the trend component, n_t */
-    private int trendComponentSmoothing = 3; // TODO: How to use?
-    /** The smoothing parameter for the seasonal component, n_s */
-    private int seasonalComponentSmoothing = 3; // TODO: How to use?
+    /** The smoothing parameter for the low pass filter, like n_l */
+    private double lowPassFilterBandwidth = 0.25;
+    /** The smoothing parameter for the trend component, like n_t */
+    private double trendComponentBandwidth = 0.25;
+    /** The smoothing parameter for the seasonal component, like n_s */
+    private double seasonalComponentBandwidth = 0.25;
 
     public Config() {}
 
@@ -77,35 +81,32 @@ public class STLDecomposition {
       this.numberOfRobustnessIterations = numberOfRobustnessIterations;
     }
 
-    public int getLowPassFilterSmoothing() {
-      return lowPassFilterSmoothing;
+    public double getLowPassFilterBandwidth() {
+      return lowPassFilterBandwidth;
     }
 
-    public void setLowPassFilterSmoothing(int lowPassFilterSmoothing) {
-      this.lowPassFilterSmoothing = lowPassFilterSmoothing;
+    public void setLowPassFilterBandwidth(double lowPassFilterBandwidth) {
+      this.lowPassFilterBandwidth = lowPassFilterBandwidth;
     }
 
-    public int getTrendComponentSmoothing() {
-      return trendComponentSmoothing;
+    public double getTrendComponentBandwidth() {
+      return trendComponentBandwidth;
     }
 
-    public void setTrendComponentSmoothing(int trendComponentSmoothing) {
-      this.trendComponentSmoothing = trendComponentSmoothing;
+    public void setTrendComponentBandwidth(double trendComponentBandwidth) {
+      this.trendComponentBandwidth = trendComponentBandwidth;
     }
 
-    public int getSeasonalComponentSmoothing() {
-      return seasonalComponentSmoothing;
+    public double getSeasonalComponentBandwidth() {
+      return seasonalComponentBandwidth;
     }
 
-    public void setSeasonalComponentSmoothing(int seasonalComponentSmoothing) {
-      this.seasonalComponentSmoothing = seasonalComponentSmoothing;
+    public void setSeasonalComponentBandwidth(double seasonalComponentBandwidth) {
+      this.seasonalComponentBandwidth = seasonalComponentBandwidth;
     }
 
     public void check() {
       checkPeriodicity(numberOfObservations);
-      checkSmoothing("lowPassFilterSmoothing", lowPassFilterSmoothing);
-      checkSmoothing("trendComponentSmoothing", trendComponentSmoothing);
-      checkSmoothing("seasonalComponentSmoothing", seasonalComponentSmoothing);
     }
 
     private int checkPeriodicity(int numberOfObservations) {
@@ -113,15 +114,6 @@ public class STLDecomposition {
         throw new IllegalArgumentException("Periodicity (numberOfObservations) must be >= 2");
       }
       return numberOfObservations;
-    }
-
-    private void checkSmoothing(String name, int value) {
-      if (value < 3) {
-        throw new IllegalArgumentException(name + " must be at least 3: is " + value);
-      }
-      if (value % 2 == 0) {
-        throw new IllegalArgumentException(name + " must be odd: is " + value);
-      }
     }
   }
 
@@ -165,9 +157,8 @@ public class STLDecomposition {
         }
 
         // Step 2: Cycle-subseries Smoothing
-        // TODO: Use n_s, seasonalComponentSmoothing here!
         for (int i = 0; i < cycleSubseries.length; i++) {
-          double[] smoothed = loessSmooth(cycleTimes[i], cycleSubseries[i]);
+          double[] smoothed = loessSmooth(cycleTimes[i], cycleSubseries[i], config.getSeasonalComponentBandwidth());
           cycleSubseries[i] = smoothed;
         }
 
@@ -193,8 +184,7 @@ public class STLDecomposition {
         }
 
         // Step 6: Trend Smoothing
-        // TODO: Use n_t, trendComponentSmoothing here!
-        trend = loessSmooth(trend);
+        trend = loessSmooth(trend, config.getTrendComponentBandwidth());
       }
 
       // --- Now in outer loop ---
@@ -246,21 +236,20 @@ public class STLDecomposition {
     // Apply moving average of length 3
     series = movingAverage(series, 3);
     // Loess smoothing with d = 1, q = n_l
-    // TODO: Use n_l, lowPassFilterSmoothing here!
-    series = loessSmooth(series);
+    series = loessSmooth(series, config.getLowPassFilterBandwidth());
     return series;
   }
 
-  private double[] loessSmooth(double[] series) {
+  private double[] loessSmooth(double[] series, double bandwidth) {
     double[] times = new double[series.length];
     for (int i = 0; i < series.length; i++) {
       times[i] = i;
     }
-    return loessSmooth(times, series);
+    return loessSmooth(times, series, bandwidth);
   }
 
-  private double[] loessSmooth(double[] times, double[] series) {
-    return new LoessInterpolator(LOESS_BANDWIDTH, LOESS_ROBUSTNESS_ITERATIONS).smooth(times, series);
+  private double[] loessSmooth(double[] times, double[] series, double bandwidth) {
+    return new LoessInterpolator(bandwidth, LOESS_ROBUSTNESS_ITERATIONS).smooth(times, series);
   }
 
   private double[] movingAverage(double[] series, int window) {
@@ -298,7 +287,8 @@ public class STLDecomposition {
 
     STLDecomposition.Config config = new STLDecomposition.Config();
     config.setNumberOfObservations(12);
-    config.setNumberOfInnerLoopPasses(10);
+    config.setNumberOfInnerLoopPasses(4);
+    config.setSeasonalComponentBandwidth(0.50);
     STLDecomposition stl = new STLDecomposition(config);
     STLResult res = stl.decompose(tsLong, ys);
 
