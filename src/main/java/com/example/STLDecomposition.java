@@ -8,6 +8,18 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import java.io.File;
 import java.io.FileOutputStream;
 
+/**
+ * Implementation of STL: A Seasonal-Trend Decomposition Procedure based on Loess.
+ *
+ * <p>
+ *   Robert B. Cleveland et al., "STL: A Seasonal-Trend Decomposition Procedure based on Loess,"
+ *   in Journal of Official Statistics Vol. 6 No. 1, 1990, pp. 3-73
+ * </p>
+ *
+ * @author Greg Brandt (gbrandt@linkedin.com)
+ * @author Jieying Chen (jjchen@linkedin.com)
+ * @author James Hong (jhong@linkedin.com)
+ */
 public class STLDecomposition {
   private static final int LOESS_ROBUSTNESS_ITERATIONS = 4; // same as R implementation
 
@@ -15,15 +27,6 @@ public class STLDecomposition {
 
   /**
    * Constructs a configuration of STL function that can de-trend data.
-   *
-   * <p>
-   *   Robert B. Cleveland et al., "STL: A Seasonal-Trend Decomposition Procedure based on Loess,"
-   *   in Journal of Official Statistics Vol. 6 No. 1, 1990, pp. 3-73
-   * </p>
-   *
-   * <p>
-   *   The three spans (n_s, n_t, and n_l) must be at least three and odd.
-   * </p>
    *
    * <p>
    *   n.b. The Java Loess implementation only does  linear local polynomial
@@ -107,6 +110,8 @@ public class STLDecomposition {
 
     public void check() {
       checkPeriodicity(numberOfObservations);
+
+      // TODO: Check n_t, needs to be n_t >= 1.5 * n_p / (1 - 1.5/n_s)
     }
 
     private int checkPeriodicity(int numberOfObservations) {
@@ -130,6 +135,11 @@ public class STLDecomposition {
         double[] detrend = new double[series.length];
         for (int i = 0; i < series.length; i++) {
           detrend[i] = series[i] - trend[i];
+
+          // Apply robustness weight if have passed one inner loop
+          if (robustness != null) {
+            detrend[i] *= robustness[i];
+          }
         }
 
         // Get cycle sub-series with padding on either side
@@ -142,11 +152,6 @@ public class STLDecomposition {
             int cycleIdx = i / numberOfObservations;
             cycleSubseries[j][cycleIdx + 1] = detrend[i + j];
             cycleTimes[j][cycleIdx + 1] = i + j;
-
-            // Apply robustness weight if have passed one inner loop
-            if (robustness != null) {
-              cycleSubseries[j][cycleIdx + 1] *= robustness[i + j];
-            }
           }
         }
 
@@ -208,7 +213,7 @@ public class STLDecomposition {
       absRemainder[i] = Math.abs(remainder[i]);
     }
     DescriptiveStatistics stats = new DescriptiveStatistics(absRemainder);
-    double h = 6 * stats.getPercentile(0.5);
+    double h = 6 * stats.getPercentile(50);
 
     // Compute robustness weights
     double[] robustness = new double[remainder.length];
@@ -271,24 +276,58 @@ public class STLDecomposition {
     return movingAverage;
   }
 
+  /**
+   * Accepts an input JSON file containing raw time series, e.g.
+   *
+   * <pre>
+   *   {
+   *     "times": [1,2,3,4,...],
+   *     "series": [100,200,300,400,...]
+   *   }
+   * </pre>
+   *
+   * And outputs the STL de-trended data:
+   *
+   * <pre>
+   *   {
+   *     "times": [1,2,3,4,...],
+   *     "series": [100,200,300,400,...],
+   *     "seasonal": [...],
+   *     "trend": [...],
+   *     "remainder": [...]
+   *   }
+   * </pre>
+   *
+   * n.b. This isn't really meant to be used on anything besides src/test/resources/sample-timeseries.json,
+   * just an example.
+   */
   public static void main(String[] args) throws Exception {
+    if (args.length != 2) {
+      System.err.println("usage: input_file output_file");
+      System.exit(1);
+    }
+
     ObjectMapper objectMapper = new ObjectMapper();
     JsonNode tree = objectMapper.readTree(new File(args[0]));
-    int n = tree.get("ts").size();
+    int n = tree.get("times").size();
     long[] tsLong = new long[n];
     double[] ts = new double[n];
     double[] ys = new double[n];
 
     for (int i = 0; i < n; i++) {
-      tsLong[i] =  tree.get("ts").get(i).asLong();
-      ts[i] = tree.get("ts").get(i).asDouble();
-      ys[i] = tree.get("ys").get(i).asDouble();
+      tsLong[i] =  tree.get("times").get(i).asLong();
+      ts[i] = tree.get("times").get(i).asDouble();
+      ys[i] = tree.get("series").get(i).asDouble();
     }
 
+    // This configuration was chosen to work with monthly data over 20 years
     STLDecomposition.Config config = new STLDecomposition.Config();
     config.setNumberOfObservations(12);
-    config.setNumberOfInnerLoopPasses(4);
-    config.setSeasonalComponentBandwidth(0.50);
+    config.setNumberOfInnerLoopPasses(2);
+    config.setNumberOfRobustnessIterations(1);
+    config.setSeasonalComponentBandwidth(0.75);
+    config.setLowPassFilterBandwidth(0.30);
+    config.setTrendComponentBandwidth(0.10);
     STLDecomposition stl = new STLDecomposition(config);
     STLResult res = stl.decompose(tsLong, ys);
 
