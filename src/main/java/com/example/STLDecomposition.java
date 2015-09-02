@@ -3,6 +3,7 @@ package com.example;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.math3.analysis.interpolation.LoessInterpolator;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -129,6 +130,7 @@ public class STLDecomposition {
     double[] trend = new double[series.length];
     double[] seasonal = new double[series.length];
     double[] remainder = new double[series.length];
+    double[] robustness = null;
 
     for (int l = 0; l < config.getNumberOfRobustnessIterations(); l++) {
       for (int k = 0; k < config.getNumberOfInnerLoopPasses(); k++) {
@@ -148,6 +150,11 @@ public class STLDecomposition {
             int cycleIdx = i / numberOfObservations;
             cycleSubseries[j][cycleIdx + 1] = detrend[i + j];
             cycleTimes[j][cycleIdx + 1] = i + j;
+
+            // Apply robustness weight if have passed one inner loop
+            if (robustness != null) {
+              cycleSubseries[j][cycleIdx + 1] *= robustness[i + j];
+            }
           }
         }
 
@@ -158,6 +165,7 @@ public class STLDecomposition {
         }
 
         // Step 2: Cycle-subseries Smoothing
+        // TODO: Use n_s, seasonalComponentSmoothing here!
         for (int i = 0; i < cycleSubseries.length; i++) {
           double[] smoothed = loessSmooth(cycleTimes[i], cycleSubseries[i]);
           cycleSubseries[i] = smoothed;
@@ -185,6 +193,7 @@ public class STLDecomposition {
         }
 
         // Step 6: Trend Smoothing
+        // TODO: Use n_t, trendComponentSmoothing here!
         trend = loessSmooth(trend);
       }
 
@@ -194,19 +203,50 @@ public class STLDecomposition {
       for (int i = 0; i < series.length; i++) {
         remainder[i] = series[i] - trend[i] - seasonal[i];
       }
+
+      // Calculate robustness weights using remainder
+      robustness = robustnessWeights(remainder);
     }
 
     return new STLResult(times, series, trend, seasonal, remainder);
+  }
+
+  private double[] robustnessWeights(double[] remainder) {
+    // Compute "h" = 6 median(|R_v|)
+    double[] absRemainder = new double[remainder.length];
+    for (int i = 0; i < remainder.length; i++) {
+      absRemainder[i] = Math.abs(remainder[i]);
+    }
+    DescriptiveStatistics stats = new DescriptiveStatistics(absRemainder);
+    double h = 6 * stats.getPercentile(0.5);
+
+    // Compute robustness weights
+    double[] robustness = new double[remainder.length];
+    for (int i = 0; i < remainder.length; i++) {
+      robustness[i] = biSquareWeight(absRemainder[i] / h);
+    }
+
+    return robustness;
+  }
+
+  private double biSquareWeight(double u) {
+    if (u < 0) {
+      throw new IllegalArgumentException("Invalid u, must be >= 0: " + u);
+    } else if (u < 1) {
+      return Math.pow(1 - Math.pow(u, 2), 2);
+    } else {
+      return 0;
+    }
   }
 
   private double[] lowPassFilter(double[] series) {
     // Apply moving average of length n_p, twice
     series = movingAverage(series, config.getNumberOfObservations());
     series = movingAverage(series, config.getNumberOfObservations());
-    // TODO: Is it always moving average with length of three?
     // Apply moving average of length 3
     series = movingAverage(series, 3);
     // Loess smoothing with d = 1, q = n_l
+    // TODO: Use n_l, lowPassFilterSmoothing here!
     series = loessSmooth(series);
     return series;
   }
@@ -258,6 +298,7 @@ public class STLDecomposition {
 
     STLDecomposition.Config config = new STLDecomposition.Config();
     config.setNumberOfObservations(12);
+    config.setNumberOfInnerLoopPasses(10);
     STLDecomposition stl = new STLDecomposition(config);
     STLResult res = stl.decompose(tsLong, ys);
 
