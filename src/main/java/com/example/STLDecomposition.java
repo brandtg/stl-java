@@ -7,21 +7,11 @@ import org.apache.commons.math3.analysis.interpolation.LoessInterpolator;
 import java.io.File;
 import java.io.FileOutputStream;
 
-/**
- * Notes for meeting with Jieying:
- *
- * TODO: For Loess, so you need to specify degree=1 in R to be identical to Java - is this okay still, what do we lose?
- */
 public class STLDecomposition {
   private static final double LOESS_BANDWIDTH = 0.75; // same as R implementation
   private static final int LOESS_ROBUSTNESS_ITERATIONS = 4; // same as R implementation
 
-  private final int numberOfObservations;
-  private final int numberOfInnerLoopPasses;
-  private final int numberOfRobustnessIterations;
-  private final int lowPassFilterSmoothing;
-  private final int trendComponentSmoothing;
-  private final int seasonalComponentSmoothing;
+  private final Config config;
 
   /**
    * Constructs a configuration of STL function that can de-trend data.
@@ -40,61 +30,108 @@ public class STLDecomposition {
    *   regression, but R supports linear (degree=1), quadratic (degree=2), and
    *   a strange degree=0 option.
    * </p>
-   *
-   * @param numberOfObservations
-   *  The number of observations in each cycle of the seasonal component, n_p
-   * @param numberOfInnerLoopPasses
-   *  The number of passes through the inner loop, n_i
-   * @param numberOfRobustnessIterations
-   *  The number of robustness iterations of the outer loop, n_o
-   * @param lowPassFilterSmoothing
-   *  The smoothing parameter for the low-pass filter, n_l
-   * @param trendComponentSmoothing
-   *  The smoothing parameter for the trend component, n_t
-   * @param seasonalComponentSmoothing
-   *  The smoothing parameter for the seasonal component, n_s
    */
-  public STLDecomposition(int numberOfObservations,
-                          int numberOfInnerLoopPasses,
-                          int numberOfRobustnessIterations,
-                          int lowPassFilterSmoothing,
-                          int trendComponentSmoothing,
-                          int seasonalComponentSmoothing) {
-    this.numberOfObservations = checkPeriodicity(numberOfObservations);
-    this.numberOfInnerLoopPasses = numberOfInnerLoopPasses;
-    this.numberOfRobustnessIterations = numberOfRobustnessIterations;
-    this.lowPassFilterSmoothing = checkSmoothing("lowPassFilterSmoothing", lowPassFilterSmoothing);
-    this.trendComponentSmoothing = checkSmoothing("trendComponentSmoothing", trendComponentSmoothing);
-    this.seasonalComponentSmoothing = checkSmoothing("seasonalComponentSmoothing", seasonalComponentSmoothing);
+  public STLDecomposition(Config config) {
+    config.check();
+    this.config = config;
   }
 
-  private int checkPeriodicity(int numberOfObservations) {
-    if (numberOfObservations < 2) {
-      throw new IllegalArgumentException("Periodicity (numberOfObservations) must be >= 2");
+  public static class Config {
+    /** The number of observations in each cycle of the seasonal component, n_p */
+    private int numberOfObservations;
+    /** The number of passes through the inner loop, n_i */
+    private int numberOfInnerLoopPasses = 1;
+    /** The number of robustness iterations of the outer loop, n_o */
+    private int numberOfRobustnessIterations = 1;
+    /** The smoothing parameter for the low pass filter, n_l */
+    private int lowPassFilterSmoothing = 3; // TODO: How to use?
+    /** The smoothing parameter for the trend component, n_t */
+    private int trendComponentSmoothing = 3; // TODO: How to use?
+    /** The smoothing parameter for the seasonal component, n_s */
+    private int seasonalComponentSmoothing = 3; // TODO: How to use?
+
+    public Config() {}
+
+    public int getNumberOfObservations() {
+      return numberOfObservations;
     }
-    return numberOfObservations;
+
+    public void setNumberOfObservations(int numberOfObservations) {
+      this.numberOfObservations = numberOfObservations;
+    }
+
+    public int getNumberOfInnerLoopPasses() {
+      return numberOfInnerLoopPasses;
+    }
+
+    public void setNumberOfInnerLoopPasses(int numberOfInnerLoopPasses) {
+      this.numberOfInnerLoopPasses = numberOfInnerLoopPasses;
+    }
+
+    public int getNumberOfRobustnessIterations() {
+      return numberOfRobustnessIterations;
+    }
+
+    public void setNumberOfRobustnessIterations(int numberOfRobustnessIterations) {
+      this.numberOfRobustnessIterations = numberOfRobustnessIterations;
+    }
+
+    public int getLowPassFilterSmoothing() {
+      return lowPassFilterSmoothing;
+    }
+
+    public void setLowPassFilterSmoothing(int lowPassFilterSmoothing) {
+      this.lowPassFilterSmoothing = lowPassFilterSmoothing;
+    }
+
+    public int getTrendComponentSmoothing() {
+      return trendComponentSmoothing;
+    }
+
+    public void setTrendComponentSmoothing(int trendComponentSmoothing) {
+      this.trendComponentSmoothing = trendComponentSmoothing;
+    }
+
+    public int getSeasonalComponentSmoothing() {
+      return seasonalComponentSmoothing;
+    }
+
+    public void setSeasonalComponentSmoothing(int seasonalComponentSmoothing) {
+      this.seasonalComponentSmoothing = seasonalComponentSmoothing;
+    }
+
+    public void check() {
+      checkPeriodicity(numberOfObservations);
+      checkSmoothing("lowPassFilterSmoothing", lowPassFilterSmoothing);
+      checkSmoothing("trendComponentSmoothing", trendComponentSmoothing);
+      checkSmoothing("seasonalComponentSmoothing", seasonalComponentSmoothing);
+    }
+
+    private int checkPeriodicity(int numberOfObservations) {
+      if (numberOfObservations < 2) {
+        throw new IllegalArgumentException("Periodicity (numberOfObservations) must be >= 2");
+      }
+      return numberOfObservations;
+    }
+
+    private void checkSmoothing(String name, int value) {
+      if (value < 3) {
+        throw new IllegalArgumentException(name + " must be at least 3: is " + value);
+      }
+      if (value % 2 == 0) {
+        throw new IllegalArgumentException(name + " must be odd: is " + value);
+      }
+    }
   }
 
-  /**
-   * Returns the smoothing component value if it is >= 3 and odd.
-   */
-  private int checkSmoothing(String name, int value) {
-    if (value < 3) {
-      throw new IllegalArgumentException(name + " must be at least 3: is " + value);
-    }
-    if (value % 2 == 0) {
-      throw new IllegalArgumentException(name + " must be odd: is " + value);
-    }
-    return value;
-  }
 
   public STLResult decompose(long[] times, double[] series) {
     double[] trend = new double[series.length];
     double[] seasonal = new double[series.length];
     double[] remainder = new double[series.length];
 
-    for (int l = 0; l < numberOfRobustnessIterations; l++) {
-      for (int k = 0; k < numberOfInnerLoopPasses; k++) {
+    for (int l = 0; l < config.getNumberOfRobustnessIterations(); l++) {
+      for (int k = 0; k < config.getNumberOfInnerLoopPasses(); k++) {
         // Step 1: Detrending
         double[] detrend = new double[series.length];
         for (int i = 0; i < series.length; i++) {
@@ -102,6 +139,7 @@ public class STLDecomposition {
         }
 
         // Get cycle sub-series with padding on either side
+        int numberOfObservations = config.getNumberOfObservations();
         int cycleSubseriesLength = series.length / numberOfObservations;
         double[][] cycleSubseries = new double[numberOfObservations][cycleSubseriesLength + 2];
         double[][] cycleTimes = new double[numberOfObservations][cycleSubseriesLength + 2];
@@ -163,8 +201,9 @@ public class STLDecomposition {
 
   private double[] lowPassFilter(double[] series) {
     // Apply moving average of length n_p, twice
-    series = movingAverage(series, numberOfObservations);
-    series = movingAverage(series, numberOfObservations);
+    series = movingAverage(series, config.getNumberOfObservations());
+    series = movingAverage(series, config.getNumberOfObservations());
+    // TODO: Is it always moving average with length of three?
     // Apply moving average of length 3
     series = movingAverage(series, 3);
     // Loess smoothing with d = 1, q = n_l
@@ -217,7 +256,9 @@ public class STLDecomposition {
       ys[i] = tree.get("ys").get(i).asDouble();
     }
 
-    STLDecomposition stl = new STLDecomposition(12, 1, 1, 3, 3, 3);
+    STLDecomposition.Config config = new STLDecomposition.Config();
+    config.setNumberOfObservations(12);
+    STLDecomposition stl = new STLDecomposition(config);
     STLResult res = stl.decompose(tsLong, ys);
 
     objectMapper.writerWithDefaultPrettyPrinter().writeValue(new FileOutputStream(args[1]), res);
