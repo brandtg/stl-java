@@ -18,9 +18,9 @@ import java.util.List;
  *   in Journal of Official Statistics Vol. 6 No. 1, 1990, pp. 3-73
  * </p>
  *
- * @author Greg Brandt (gbrandt@linkedin.com)
- * @author Jieying Chen (jjchen@linkedin.com)
- * @author James Hong (jhong@linkedin.com)
+ * @author Greg Brandt
+ * @author Jieying Chen
+ * @author James Hong
  */
 public class STLDecomposition {
   private static final int LOESS_ROBUSTNESS_ITERATIONS = 4; // same as R implementation
