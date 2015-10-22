@@ -1,4 +1,4 @@
-package com.example;
+package com.github.brandtg;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -7,6 +7,8 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Implementation of STL: A Seasonal-Trend Decomposition Procedure based on Loess.
@@ -23,7 +25,7 @@ import java.io.FileOutputStream;
 public class STLDecomposition {
   private static final int LOESS_ROBUSTNESS_ITERATIONS = 4; // same as R implementation
 
-  private final Config config;
+  private final STLConfig config;
 
   /**
    * Constructs a configuration of STL function that can de-trend data.
@@ -39,89 +41,10 @@ public class STLDecomposition {
    *   to the current point, as opposed to integral values.
    * </p>
    */
-  public STLDecomposition(Config config) {
+  public STLDecomposition(STLConfig config) {
     config.check();
     this.config = config;
   }
-
-  public static class Config {
-    /** The number of observations in each cycle of the seasonal component, n_p */
-    private int numberOfObservations;
-    /** The number of passes through the inner loop, n_i */
-    private int numberOfInnerLoopPasses = 1;
-    /** The number of robustness iterations of the outer loop, n_o */
-    private int numberOfRobustnessIterations = 1;
-    /** The smoothing parameter for the low pass filter, like n_l */
-    private double lowPassFilterBandwidth = 0.25;
-    /** The smoothing parameter for the trend component, like n_t */
-    private double trendComponentBandwidth = 0.25;
-    /** The smoothing parameter for the seasonal component, like n_s */
-    private double seasonalComponentBandwidth = 0.25;
-
-    public Config() {}
-
-    public int getNumberOfObservations() {
-      return numberOfObservations;
-    }
-
-    public void setNumberOfObservations(int numberOfObservations) {
-      this.numberOfObservations = numberOfObservations;
-    }
-
-    public int getNumberOfInnerLoopPasses() {
-      return numberOfInnerLoopPasses;
-    }
-
-    public void setNumberOfInnerLoopPasses(int numberOfInnerLoopPasses) {
-      this.numberOfInnerLoopPasses = numberOfInnerLoopPasses;
-    }
-
-    public int getNumberOfRobustnessIterations() {
-      return numberOfRobustnessIterations;
-    }
-
-    public void setNumberOfRobustnessIterations(int numberOfRobustnessIterations) {
-      this.numberOfRobustnessIterations = numberOfRobustnessIterations;
-    }
-
-    public double getLowPassFilterBandwidth() {
-      return lowPassFilterBandwidth;
-    }
-
-    public void setLowPassFilterBandwidth(double lowPassFilterBandwidth) {
-      this.lowPassFilterBandwidth = lowPassFilterBandwidth;
-    }
-
-    public double getTrendComponentBandwidth() {
-      return trendComponentBandwidth;
-    }
-
-    public void setTrendComponentBandwidth(double trendComponentBandwidth) {
-      this.trendComponentBandwidth = trendComponentBandwidth;
-    }
-
-    public double getSeasonalComponentBandwidth() {
-      return seasonalComponentBandwidth;
-    }
-
-    public void setSeasonalComponentBandwidth(double seasonalComponentBandwidth) {
-      this.seasonalComponentBandwidth = seasonalComponentBandwidth;
-    }
-
-    public void check() {
-      checkPeriodicity(numberOfObservations);
-
-      // TODO: Check n_t, needs to be n_t >= 1.5 * n_p / (1 - 1.5/n_s)
-    }
-
-    private int checkPeriodicity(int numberOfObservations) {
-      if (numberOfObservations < 2) {
-        throw new IllegalArgumentException("Periodicity (numberOfObservations) must be >= 2");
-      }
-      return numberOfObservations;
-    }
-  }
-
 
   public STLResult decompose(long[] times, double[] series) {
     double[] trend = new double[series.length];
@@ -135,52 +58,41 @@ public class STLDecomposition {
         double[] detrend = new double[series.length];
         for (int i = 0; i < series.length; i++) {
           detrend[i] = series[i] - trend[i];
-
-          // Apply robustness weight if have passed one inner loop
-          if (robustness != null) {
-            detrend[i] *= robustness[i];
-          }
         }
 
         // Get cycle sub-series with padding on either side
         int numberOfObservations = config.getNumberOfObservations();
-        int cycleSubseriesLength = series.length / numberOfObservations;
-        double[][] cycleSubseries = new double[numberOfObservations][cycleSubseriesLength + 2];
-        double[][] cycleTimes = new double[numberOfObservations][cycleSubseriesLength + 2];
-        for (int i = 0; i < series.length; i += numberOfObservations) {
-          for (int j = 0; j < numberOfObservations; j++) {
-            int cycleIdx = i / numberOfObservations;
-            cycleSubseries[j][cycleIdx + 1] = detrend[i + j];
-            cycleTimes[j][cycleIdx + 1] = i + j;
-          }
-        }
-
-        // Beginning / end times
-        for (int i = 0; i < numberOfObservations; i++) {
-          cycleTimes[i][0] = cycleTimes[i][1] - numberOfObservations;
-          cycleTimes[i][cycleTimes[i].length - 1] = cycleTimes[i][cycleTimes[i].length - 2] + numberOfObservations;
-        }
+        CycleSubSeries cycle = new CycleSubSeries(times, series, robustness, detrend, numberOfObservations);
+        cycle.compute();
+        List<double[]> cycleSubseries = cycle.getCycleSubSeries();
+        List<double[]> cycleTimes = cycle.getCycleTimes();
+        List<double[]> cycleRobustnessWeights = cycle.getCycleRobustnessWeights();
 
         // Step 2: Cycle-subseries Smoothing
-        for (int i = 0; i < cycleSubseries.length; i++) {
-          double[] smoothed = loessSmooth(cycleTimes[i], cycleSubseries[i], config.getSeasonalComponentBandwidth());
-          cycleSubseries[i] = smoothed;
+        for (int i = 0; i < cycleSubseries.size(); i++) {
+          double[] smoothed = loessSmooth(
+              cycleTimes.get(i),
+              cycleSubseries.get(i),
+              config.getSeasonalComponentBandwidth(),
+              cycleRobustnessWeights.get(i));
+          cycleSubseries.set(i, smoothed);
         }
 
         // Combine smoothed series into one
-        double[] combinedSmoothed = new double[series.length + 2 * numberOfObservations];
-        for (int i = 0; i < cycleSubseriesLength + 2; i++) {
-          for (int j = 0; j < numberOfObservations; j++) {
-            combinedSmoothed[i * numberOfObservations + j] = cycleSubseries[j][i];
+        double[] combinedSmoothed = new double[series.length];
+        for (int i = 0; i < cycleSubseries.size(); i++) {
+          double[] subseriesValues = cycleSubseries.get(i);
+          for (int cycleIdx = 0; cycleIdx < subseriesValues.length; cycleIdx++) {
+            combinedSmoothed[numberOfObservations * cycleIdx + i] = subseriesValues[cycleIdx];
           }
         }
 
         // Step 3: Low-Pass Filtering of Smoothed Cycle-Subseries
-        double[] filtered = lowPassFilter(combinedSmoothed);
+        double[] filtered = lowPassFilter(combinedSmoothed, robustness);
 
         // Step 4: Detrending of Smoothed Cycle-Subseries
         for (int i = 0; i < seasonal.length; i++) {
-          seasonal[i] = combinedSmoothed[i + numberOfObservations] - filtered[i + numberOfObservations];
+          seasonal[i] = combinedSmoothed[i] - filtered[i];
         }
 
         // Step 5: Deseasonalizing
@@ -189,7 +101,7 @@ public class STLDecomposition {
         }
 
         // Step 6: Trend Smoothing
-        trend = loessSmooth(trend, config.getTrendComponentBandwidth());
+        trend = loessSmooth(trend, config.getTrendComponentBandwidth(), robustness);
       }
 
       // --- Now in outer loop ---
@@ -203,7 +115,81 @@ public class STLDecomposition {
       robustness = robustnessWeights(remainder);
     }
 
+    // TODO: The R code does cycle subseries weighted mean smoothing on seasonal component here
+    /*
+     if (periodic) {
+        which.cycle <- cycle(x)
+        z$seasonal <- tapply(z$seasonal, which.cycle, mean)[which.cycle]
+     }
+     remainder <- as.vector(x) - z$seasonal - z$trend
+     y <- cbind(seasonal = z$seasonal, trend = z$trend, remainder = remainder)
+     */
+
     return new STLResult(times, series, trend, seasonal, remainder);
+  }
+
+  private static class CycleSubSeries {
+    // Output
+    private final List<double[]> cycleSubSeries = new ArrayList<double[]>();
+    private final List<double[]> cycleTimes = new ArrayList<double[]>();
+    private final List<double[]> cycleRobustnessWeights = new ArrayList<double[]>();
+
+    // Input
+    private final int numberOfObservations;
+    private final long[] times;
+    private final double[] series;
+    private final double[] robustness;
+    private final double[] detrend;
+
+    CycleSubSeries(long[] times, double[] series, double[] robustness, double[] detrend, int numberOfObservations) {
+      this.times = times;
+      this.series = series;
+      this.robustness = robustness;
+      this.detrend = detrend;
+      this.numberOfObservations = numberOfObservations;
+    }
+
+    public List<double[]> getCycleSubSeries() {
+      return cycleSubSeries;
+    }
+
+    public List<double[]> getCycleTimes() {
+      return cycleTimes;
+    }
+
+    public List<double[]> getCycleRobustnessWeights() {
+      return cycleRobustnessWeights;
+    }
+
+    void compute() {
+      for (int i = 0; i < numberOfObservations; i++) {
+        int subseriesLength = series.length / numberOfObservations;
+        subseriesLength += (i < series.length % numberOfObservations) ? 1 : 0;
+        double[] subseriesValues = new double[subseriesLength];
+        double[] subseriesTimes = new double[subseriesLength];
+        double[] subseriesRobustnessWeights = null;
+        if (robustness != null) {
+          subseriesRobustnessWeights = new double[subseriesLength];
+        }
+
+        for (int cycleIdx = 0; cycleIdx < subseriesLength; cycleIdx++) {
+          subseriesValues[cycleIdx] = detrend[cycleIdx * numberOfObservations + i];
+          subseriesTimes[cycleIdx] = times[cycleIdx * numberOfObservations + i];
+          if (subseriesRobustnessWeights != null) {
+            subseriesRobustnessWeights[cycleIdx] = robustness[cycleIdx * numberOfObservations + i];
+
+            // TODO: Hack to ensure no divide by zero
+            if (subseriesRobustnessWeights[cycleIdx] < 0.001) {
+              subseriesRobustnessWeights[cycleIdx] = 0.01;
+            }
+          }
+        }
+
+        cycleSubSeries.add(subseriesValues);
+        cycleTimes.add(subseriesTimes);
+        cycleRobustnessWeights.add(subseriesRobustnessWeights);
+      }
+    }
   }
 
   private double[] robustnessWeights(double[] remainder) {
@@ -234,28 +220,68 @@ public class STLDecomposition {
     }
   }
 
-  private double[] lowPassFilter(double[] series) {
+  private double[] lowPassFilter(double[] series, double[] weights) {
     // Apply moving average of length n_p, twice
     series = movingAverage(series, config.getNumberOfObservations());
     series = movingAverage(series, config.getNumberOfObservations());
     // Apply moving average of length 3
     series = movingAverage(series, 3);
     // Loess smoothing with d = 1, q = n_l
-    series = loessSmooth(series, config.getLowPassFilterBandwidth());
+    series = loessSmooth(series, config.getLowPassFilterBandwidth(), weights);
     return series;
   }
 
-  private double[] loessSmooth(double[] series, double bandwidth) {
+  /**
+   * @param weights
+   *  The weights to use for smoothing, if null, equal weights are assumed
+   * @return
+   *  Smoothed series
+   */
+  private double[] loessSmooth(double[] series, double bandwidth, double[] weights) {
     double[] times = new double[series.length];
     for (int i = 0; i < series.length; i++) {
       times[i] = i;
     }
-    return loessSmooth(times, series, bandwidth);
+    return loessSmooth(times, series, bandwidth, weights);
   }
 
-  private double[] loessSmooth(double[] times, double[] series, double bandwidth) {
-    return new LoessInterpolator(bandwidth, LOESS_ROBUSTNESS_ITERATIONS).smooth(times, series);
+  /**
+   * @param weights
+   *  The weights to use for smoothing, if null, equal weights are assumed
+   * @return
+   *  Smoothed series
+   */
+  private double[] loessSmooth(double[] times, double[] series, double bandwidth, double[] weights) {
+    if (weights == null) {
+      return new LoessInterpolator(bandwidth, LOESS_ROBUSTNESS_ITERATIONS).smooth(times, series);
+    } else {
+      return new LoessInterpolator(bandwidth, LOESS_ROBUSTNESS_ITERATIONS).smooth(times, series, weights);
+    }
   }
+
+  private double[] weightedMeanSmooth(double[] series, double[] weights) {
+    double[] smoothed = new double[series.length];
+    double mean = 0;
+    double sumOfWeights = 0;
+    for (int i = 0; i < series.length; i++) {
+      double weight = (weights != null) ? weights[i] : 1; // equal weights if none specified
+      mean += weight * series[i];;
+      sumOfWeights += weight;
+    }
+    // TODO: This is a hack to not have NaN values
+    if (sumOfWeights == 0) {
+      for (int i = 0; i < series.length; i++) {
+        smoothed[i] = series[i];
+      }
+    } else {
+      mean /= sumOfWeights;
+      for (int i = 0; i < series.length; i++) {
+        smoothed[i] = mean;
+      }
+    }
+    return smoothed;
+  }
+
 
   private double[] movingAverage(double[] series, int window) {
     double[] movingAverage = new double[series.length];
@@ -321,13 +347,14 @@ public class STLDecomposition {
     }
 
     // This configuration was chosen to work with monthly data over 20 years
-    STLDecomposition.Config config = new STLDecomposition.Config();
+    STLConfig config = new STLConfig();
     config.setNumberOfObservations(12);
-    config.setNumberOfInnerLoopPasses(2);
+    config.setNumberOfInnerLoopPasses(10);
     config.setNumberOfRobustnessIterations(1);
     config.setSeasonalComponentBandwidth(0.75);
     config.setLowPassFilterBandwidth(0.30);
     config.setTrendComponentBandwidth(0.10);
+    config.setNumberOfDataPoints(ts.length);
     STLDecomposition stl = new STLDecomposition(config);
     STLResult res = stl.decompose(tsLong, ys);
 

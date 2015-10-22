@@ -1,4 +1,4 @@
-package com.example;
+package com.github.brandtg;
 
 /**
  * The STL decomposition of a time series.
