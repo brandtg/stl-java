@@ -43,131 +43,131 @@ import org.jfree.ui.RefineryUtilities;
  * </p>
  */
 public class STLResult {
-    private final long[] times;
-    private final double[] series;
-    private final double[] trend;
-    private final double[] seasonal;
-    private final double[] remainder;
+  private final long[] times;
+  private final double[] series;
+  private final double[] trend;
+  private final double[] seasonal;
+  private final double[] remainder;
 
-    public STLResult(final long[] times, final double[] series, final double[] trend, final double[] seasonal, final double[] remainder) {
-        this.times = times;
-        this.series = series;
-        this.trend = trend;
-        this.seasonal = seasonal;
-        this.remainder = remainder;
+  public STLResult(final long[] times, final double[] series, final double[] trend, final double[] seasonal, final double[] remainder) {
+    this.times = times;
+    this.series = series;
+    this.trend = trend;
+    this.seasonal = seasonal;
+    this.remainder = remainder;
+  }
+
+  public long[] getTimes() {
+    return times;
+  }
+
+  public double[] getSeries() {
+    return series;
+  }
+
+  public double[] getTrend() {
+    return trend;
+  }
+
+  public double[] getSeasonal() {
+    return seasonal;
+  }
+
+  public double[] getRemainder() {
+    return remainder;
+  }
+
+  public void plot() {
+    this.plot("Seasonal Decomposition");
+  }
+
+  public void plot(final String title) {
+    this.plot(title, Minute.class);
+  }
+
+  public void plot(final String title, final Class<?> timePeriod) {
+    final ResultsPlot plot = new ResultsPlot(title, timePeriod);
+    plot.pack();
+    RefineryUtilities.centerFrameOnScreen(plot);
+    plot.setVisible(true);
+  }
+
+  private class ResultsPlot extends ApplicationFrame {
+
+    private static final long serialVersionUID = 1L;
+    private final JFreeChart chart;
+    private final ChartPanel chartPanel;
+    private final String title;
+    private final Class<?> timePeriod;
+
+    public ResultsPlot(final String title, final Class<?> timePeriod) {
+      super(title);
+
+      this.timePeriod = timePeriod;
+      this.title = title;
+
+      this.chart = createChart();
+      this.chart.removeLegend();
+
+      this.chartPanel = new ChartPanel(chart, true, true, true, false, true);
+      this.chartPanel.setPreferredSize(new java.awt.Dimension(1000, 500));
+
+      setContentPane(this.chartPanel);
     }
 
-    public long[] getTimes() {
-        return times;
-    }
+    private JFreeChart createChart() {
 
-    public double[] getSeries() {
-        return series;
-    }
+      final CombinedDomainXYPlot plot = new CombinedDomainXYPlot(new DateAxis("Time"));
+      final XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer(true, false);
+      final ClusteredXYBarRenderer barRenderer = new ClusteredXYBarRenderer();
+      final GradientPaint black = new GradientPaint(0.0f, 0.0f, Color.black, 0.0f, 0.0f, Color.black);
 
-    public double[] getTrend() {
-        return trend;
-    }
+      final TimeSeries seriests = new TimeSeries("Series");
+      final TimeSeries seasonalts = new TimeSeries("Seasonal");
+      final TimeSeries trendts = new TimeSeries("Trend");
+      final TimeSeries remainderts = new TimeSeries("Remainder");
 
-    public double[] getSeasonal() {
-        return seasonal;
-    }
+      final TimeSeries[] tsArray = new TimeSeries[] { seriests, seasonalts, trendts };
+      final String[] labels = new String[] { "Series", "Seasonal", "Trend" };
 
-    public double[] getRemainder() {
-        return remainder;
-    }
-
-    public void plot() {
-        this.plot("Seasonal Decomposition");
-    }
-
-    public void plot(final String title) {
-        this.plot(title, Minute.class);
-    }
-
-    public void plot(final String title, final Class<?> timePeriod) {
-        final ResultsPlot plot = new ResultsPlot(title, timePeriod);
-        plot.pack();
-        RefineryUtilities.centerFrameOnScreen(plot);
-        plot.setVisible(true);
-    }
-
-    private class ResultsPlot extends ApplicationFrame {
-
-        private static final long serialVersionUID = 1L;
-        private final JFreeChart chart;
-        private final ChartPanel chartPanel;
-        private final String title;
-        private final Class<?> timePeriod;
-
-        public ResultsPlot(final String title, final Class<?> timePeriod) {
-            super(title);
-
-            this.timePeriod = timePeriod;
-            this.title = title;
-
-            this.chart = createChart();
-            this.chart.removeLegend();
-
-            this.chartPanel = new ChartPanel(chart, true, true, true, false, true);
-            this.chartPanel.setPreferredSize(new java.awt.Dimension(1000, 500));
-
-            setContentPane(this.chartPanel);
+      final Constructor<?> cons;
+      try {
+        cons = this.timePeriod.getConstructor(Date.class);
+        for (int i = 0; i < series.length; i++) {
+          final Date d = new Date(times[i]);
+          seriests.add((RegularTimePeriod) cons.newInstance(d), series[i]);
+          seasonalts.add(new Minute(d), seasonal[i]);
+          trendts.add(new Minute(d), trend[i]);
+          remainderts.add(new Minute(d), remainder[i]);
         }
+      } catch (final Exception e) {
+        e.printStackTrace();
+      }
 
-        private JFreeChart createChart() {
+      plot.setGap(10.0);
+      renderer.setSeriesPaint(0, black);
+      barRenderer.setSeriesPaint(0, black);
+      plot.setOrientation(PlotOrientation.VERTICAL);
 
-            final CombinedDomainXYPlot plot = new CombinedDomainXYPlot(new DateAxis("Time"));
-            final XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer(true, false);
-            final ClusteredXYBarRenderer barRenderer = new ClusteredXYBarRenderer();
-            final GradientPaint black = new GradientPaint(0.0f, 0.0f, Color.black, 0.0f, 0.0f, Color.black);
+      for (int i = 0; i < tsArray.length; i++) {
+        final XYDataset ts = new TimeSeriesCollection(tsArray[i]);
+        final XYPlot p = new XYPlot(ts, new DateAxis(labels[i]), new NumberAxis(labels[i]), renderer);
+        plot.add(p);
+      }
 
-            final TimeSeries seriests = new TimeSeries("Series");
-            final TimeSeries seasonalts = new TimeSeries("Seasonal");
-            final TimeSeries trendts = new TimeSeries("Trend");
-            final TimeSeries remainderts = new TimeSeries("Remainder");
+      final XYDataset rts = new TimeSeriesCollection(remainderts);
+      final XYDataset sts = new TimeSeriesCollection(seriests);
+      final XYDataset tts = new TimeSeriesCollection(trendts);
+      final XYPlot rplot = new XYPlot(rts, new DateAxis(), new NumberAxis("Remainder"), barRenderer);
+      final XYPlot seriesAndTrend = new XYPlot(sts, new DateAxis(), new NumberAxis("S & T"), renderer);
 
-            final TimeSeries[] tsArray = new TimeSeries[] { seriests, seasonalts, trendts };
-            final String[] labels = new String[] { "Series", "Seasonal", "Trend" };
+      seriesAndTrend.setDataset(1, tts);
+      seriesAndTrend.setRenderer(1, renderer);
 
-            final Constructor<?> cons;
-            try {
-                cons = this.timePeriod.getConstructor(Date.class);
-                for (int i = 0; i < series.length; i++) {
-                    final Date d = new Date(times[i]);
-                    seriests.add((RegularTimePeriod) cons.newInstance(d), series[i]);
-                    seasonalts.add(new Minute(d), seasonal[i]);
-                    trendts.add(new Minute(d), trend[i]);
-                    remainderts.add(new Minute(d), remainder[i]);
-                }
-            } catch (final Exception e) {
-                e.printStackTrace();
-            }
+      plot.add(rplot);
+      plot.add(seriesAndTrend);
 
-            plot.setGap(10.0);
-            renderer.setSeriesPaint(0, black);
-            barRenderer.setSeriesPaint(0, black);
-            plot.setOrientation(PlotOrientation.VERTICAL);
-
-            for (int i = 0; i < tsArray.length; i++) {
-                final XYDataset ts = new TimeSeriesCollection(tsArray[i]);
-                final XYPlot p = new XYPlot(ts, new DateAxis(labels[i]), new NumberAxis(labels[i]), renderer);
-                plot.add(p);
-            }
-
-            final XYDataset rts = new TimeSeriesCollection(remainderts);
-            final XYDataset sts = new TimeSeriesCollection(seriests);
-            final XYDataset tts = new TimeSeriesCollection(trendts);
-            final XYPlot rplot = new XYPlot(rts, new DateAxis(), new NumberAxis("Remainder"), barRenderer);
-            final XYPlot seriesAndTrend = new XYPlot(sts, new DateAxis(), new NumberAxis("S & T"), renderer);
-
-            seriesAndTrend.setDataset(1, tts);
-            seriesAndTrend.setRenderer(1, renderer);
-
-            plot.add(rplot);
-            plot.add(seriesAndTrend);
-
-            return new JFreeChart(this.title, JFreeChart.DEFAULT_TITLE_FONT, plot, true);
-        }
+      return new JFreeChart(this.title, JFreeChart.DEFAULT_TITLE_FONT, plot, true);
     }
+  }
 }
