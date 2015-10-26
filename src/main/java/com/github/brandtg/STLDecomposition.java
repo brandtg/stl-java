@@ -13,20 +13,20 @@
  */
 package com.github.brandtg;
 
-import org.apache.commons.math3.analysis.interpolation.LoessInterpolator;
-import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-
-import java.io.File;
-import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.math3.analysis.interpolation.LoessInterpolator;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+
 /**
- * Implementation of STL: A Seasonal-Trend Decomposition Procedure based on Loess.
+ * Implementation of STL: A Seasonal-Trend Decomposition Procedure based on
+ * Loess.
  *
  * <p>
- *   Robert B. Cleveland et al., "STL: A Seasonal-Trend Decomposition Procedure based on Loess,"
- *   in Journal of Official Statistics Vol. 6 No. 1, 1990, pp. 3-73
+ * Robert B. Cleveland et al.,
+ * "STL: A Seasonal-Trend Decomposition Procedure based on Loess," in Journal of
+ * Official Statistics Vol. 6 No. 1, 1990, pp. 3-73
  * </p>
  *
  * @author Greg Brandt
@@ -34,22 +34,23 @@ import java.util.List;
  * @author James Hong
  */
 public class STLDecomposition {
-  private static final int LOESS_ROBUSTNESS_ITERATIONS = 4; // same as R implementation
+  private static final int LOESS_ROBUSTNESS_ITERATIONS = 4; // same as R
+                                                            // implementation
 
-  private final STLConfig config;
+  private final STLConfig  config;
 
   /**
    * Constructs a configuration of STL function that can de-trend data.
    *
    * <p>
-   *   n.b. The Java Loess implementation only does  linear local polynomial
-   *   regression, but R supports linear (degree=1), quadratic (degree=2), and
-   *   a strange degree=0 option.
+   * n.b. The Java Loess implementation only does linear local polynomial
+   * regression, but R supports linear (degree=1), quadratic (degree=2), and a
+   * strange degree=0 option.
    * </p>
    *
    * <p>
-   *   Also, the Java Loess implementation accepts "bandwidth", the fraction of source points closest
-   *   to the current point, as opposed to integral values.
+   * Also, the Java Loess implementation accepts "bandwidth", the fraction of
+   * source points closest to the current point, as opposed to integral values.
    * </p>
    */
   public STLDecomposition(STLConfig config) {
@@ -81,10 +82,7 @@ public class STLDecomposition {
 
         // Step 2: Cycle-subseries Smoothing
         for (int i = 0; i < cycleSubseries.size(); i++) {
-          double[] smoothed = loessSmooth(
-              cycleTimes.get(i),
-              cycleSubseries.get(i),
-              config.getSeasonalComponentBandwidth(),
+          double[] smoothed = loessSmooth(cycleTimes.get(i), cycleSubseries.get(i), config.getSeasonalComponentBandwidth(),
               cycleRobustnessWeights.get(i));
           cycleSubseries.set(i, smoothed);
         }
@@ -126,14 +124,13 @@ public class STLDecomposition {
       robustness = robustnessWeights(remainder);
     }
 
-    // TODO: The R code does cycle subseries weighted mean smoothing on seasonal component here
+    // TODO: The R code does cycle subseries weighted mean smoothing on seasonal
+    // component here
     /*
-     if (periodic) {
-        which.cycle <- cycle(x)
-        z$seasonal <- tapply(z$seasonal, which.cycle, mean)[which.cycle]
-     }
-     remainder <- as.vector(x) - z$seasonal - z$trend
-     y <- cbind(seasonal = z$seasonal, trend = z$trend, remainder = remainder)
+     * if (periodic) { which.cycle <- cycle(x) z$seasonal <- tapply(z$seasonal,
+     * which.cycle, mean)[which.cycle] } remainder <- as.vector(x) - z$seasonal
+     * - z$trend y <- cbind(seasonal = z$seasonal, trend = z$trend, remainder =
+     * remainder)
      */
 
     return new STLResult(times, series, trend, seasonal, remainder);
@@ -141,16 +138,16 @@ public class STLDecomposition {
 
   private static class CycleSubSeries {
     // Output
-    private final List<double[]> cycleSubSeries = new ArrayList<double[]>();
-    private final List<double[]> cycleTimes = new ArrayList<double[]>();
+    private final List<double[]> cycleSubSeries         = new ArrayList<double[]>();
+    private final List<double[]> cycleTimes             = new ArrayList<double[]>();
     private final List<double[]> cycleRobustnessWeights = new ArrayList<double[]>();
 
     // Input
-    private final int numberOfObservations;
-    private final long[] times;
-    private final double[] series;
-    private final double[] robustness;
-    private final double[] detrend;
+    private final int            numberOfObservations;
+    private final long[]         times;
+    private final double[]       series;
+    private final double[]       robustness;
+    private final double[]       detrend;
 
     CycleSubSeries(long[] times, double[] series, double[] robustness, double[] detrend, int numberOfObservations) {
       this.times = times;
@@ -244,9 +241,9 @@ public class STLDecomposition {
 
   /**
    * @param weights
-   *  The weights to use for smoothing, if null, equal weights are assumed
-   * @return
-   *  Smoothed series
+   *          The weights to use for smoothing, if null, equal weights are
+   *          assumed
+   * @return Smoothed series
    */
   private double[] loessSmooth(double[] series, double bandwidth, double[] weights) {
     double[] times = new double[series.length];
@@ -258,9 +255,9 @@ public class STLDecomposition {
 
   /**
    * @param weights
-   *  The weights to use for smoothing, if null, equal weights are assumed
-   * @return
-   *  Smoothed series
+   *          The weights to use for smoothing, if null, equal weights are
+   *          assumed
+   * @return Smoothed series
    */
   private double[] loessSmooth(double[] times, double[] series, double bandwidth, double[] weights) {
     if (weights == null) {
@@ -275,8 +272,9 @@ public class STLDecomposition {
     double mean = 0;
     double sumOfWeights = 0;
     for (int i = 0; i < series.length; i++) {
-      double weight = (weights != null) ? weights[i] : 1; // equal weights if none specified
-      mean += weight * series[i];;
+      double weight = (weights != null) ? weights[i] : 1; // equal weights if
+                                                          // none specified
+      mean += weight * series[i];
       sumOfWeights += weight;
     }
     // TODO: This is a hack to not have NaN values
@@ -292,7 +290,6 @@ public class STLDecomposition {
     }
     return smoothed;
   }
-
 
   private double[] movingAverage(double[] series, int window) {
     double[] movingAverage = new double[series.length];

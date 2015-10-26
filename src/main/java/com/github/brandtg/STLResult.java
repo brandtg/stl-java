@@ -13,11 +13,12 @@
  */
 package com.github.brandtg;
 
+
 /**
  * The STL decomposition of a time series.
  *
  * <p>
- *   getData() == getTrend() + getSeasonal() + getRemainder()
+ * getData() == getTrend() + getSeasonal() + getRemainder()
  * </p>
  */
 public class STLResult {
@@ -27,7 +28,7 @@ public class STLResult {
   private final double[] seasonal;
   private final double[] remainder;
 
-  public STLResult(long[] times, double[] series, double[] trend, double[] seasonal, double[] remainder) {
+  public STLResult(final long[] times, final double[] series, final double[] trend, final double[] seasonal, final double[] remainder) {
     this.times = times;
     this.series = series;
     this.trend = trend;

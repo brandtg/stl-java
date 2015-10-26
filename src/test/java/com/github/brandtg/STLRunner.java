@@ -13,11 +13,11 @@
  */
 package com.github.brandtg;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.io.File;
 import java.io.FileOutputStream;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class STLRunner {
   /**
@@ -42,30 +42,37 @@ public class STLRunner {
    *   }
    * </pre>
    *
-   * n.b. This isn't really meant to be used on anything besides src/test/resources/sample-timeseries.json,
-   * just an example.
+   * n.b. This isn't really meant to be used on anything besides
+   * src/test/resources/sample-timeseries.json, just an example.
    */
-  public static void main(String[] args) throws Exception {
+
+  public static void main(final String[] args) throws Exception {
+    final File testInput;
+    final String output;
+
     if (args.length != 2) {
-      System.err.println("usage: input_file output_file");
-      System.exit(1);
+      testInput = new File(STLRunner.class.getResource("/sample-timeseries.json").getFile());
+      output = "STLRunning-Output.json";
+    } else {
+      testInput = new File(args[1]);
+      output = args[2];
     }
 
-    ObjectMapper objectMapper = new ObjectMapper();
-    JsonNode tree = objectMapper.readTree(new File(args[0]));
-    int n = tree.get("times").size();
-    long[] tsLong = new long[n];
-    double[] ts = new double[n];
-    double[] ys = new double[n];
+    final ObjectMapper objectMapper = new ObjectMapper();
+    final JsonNode tree = objectMapper.readTree(testInput);
+    final int n = tree.get("times").size();
+    final long[] tsLong = new long[n];
+    final double[] ts = new double[n];
+    final double[] ys = new double[n];
 
     for (int i = 0; i < n; i++) {
-      tsLong[i] =  tree.get("times").get(i).asLong();
+      tsLong[i] = tree.get("times").get(i).asLong();
       ts[i] = tree.get("times").get(i).asDouble();
       ys[i] = tree.get("series").get(i).asDouble();
     }
 
     // This configuration was chosen to work with monthly data over 20 years
-    STLConfig config = new STLConfig();
+    final STLConfig config = new STLConfig();
     config.setNumberOfObservations(12);
     config.setNumberOfInnerLoopPasses(10);
     config.setNumberOfRobustnessIterations(1);
@@ -73,9 +80,11 @@ public class STLRunner {
     config.setLowPassFilterBandwidth(0.30);
     config.setTrendComponentBandwidth(0.10);
     config.setNumberOfDataPoints(ts.length);
-    STLDecomposition stl = new STLDecomposition(config);
-    STLResult res = stl.decompose(tsLong, ys);
+    final STLDecomposition stl = new STLDecomposition(config);
+    final STLResult res = stl.decompose(tsLong, ys);
 
-    objectMapper.writerWithDefaultPrettyPrinter().writeValue(new FileOutputStream(args[1]), res);
+    STLPlotter.plot(res);
+
+    objectMapper.writerWithDefaultPrettyPrinter().writeValue(new FileOutputStream(output), res);
   }
 }
