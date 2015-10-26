@@ -22,17 +22,17 @@ import org.jfree.data.xy.XYDataset;
 import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RefineryUtilities;
 
-public class STLPlotter {
+public class StlPlotter {
 
-  public static void plot(final STLResult stlResult) {
-    STLPlotter.plot(stlResult, "Seasonal Decomposition");
+  public static void plot(final StlResult stlResult) {
+    StlPlotter.plot(stlResult, "Seasonal Decomposition");
   }
 
-  public static void plot(final STLResult stlResult, final String title) {
-    STLPlotter.plot(stlResult, title, Minute.class);
+  public static void plot(final StlResult stlResult, final String title) {
+    StlPlotter.plot(stlResult, title, Minute.class);
   }
 
-  public static void plot(final STLResult stlResult, final String title, final Class<?> timePeriod) {
+  public static void plot(final StlResult stlResult, final String title, final Class<?> timePeriod) {
     final ResultsPlot plot = new ResultsPlot(stlResult, title, timePeriod);
     plot.pack();
     RefineryUtilities.centerFrameOnScreen(plot);
@@ -53,7 +53,7 @@ public class STLPlotter {
     private final long[]      times;
     private final double[]    remainder;
 
-    public ResultsPlot(final STLResult stlResults, final String title, final Class<?> timePeriod) {
+    public ResultsPlot(final StlResult stlResults, final String title, final Class<?> timePeriod) {
       super(title);
 
       this.series = stlResults.getSeries();

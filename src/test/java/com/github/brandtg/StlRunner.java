@@ -19,7 +19,7 @@ import java.io.FileOutputStream;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class STLRunner {
+public class StlRunner {
   /**
    * Accepts an input JSON file containing raw time series, e.g.
    *
@@ -51,7 +51,7 @@ public class STLRunner {
     final String output;
 
     if (args.length != 2) {
-      testInput = new File(STLRunner.class.getResource("/sample-timeseries.json").getFile());
+      testInput = new File(StlRunner.class.getResource("/sample-timeseries.json").getFile());
       output = "STLRunning-Output.json";
     } else {
       testInput = new File(args[1]);
@@ -72,7 +72,7 @@ public class STLRunner {
     }
 
     // This configuration was chosen to work with monthly data over 20 years
-    final STLConfig config = new STLConfig();
+    final StlConfig config = new StlConfig();
     config.setNumberOfObservations(12);
     config.setNumberOfInnerLoopPasses(10);
     config.setNumberOfRobustnessIterations(1);
@@ -81,10 +81,10 @@ public class STLRunner {
     config.setTrendComponentBandwidth(0.10);
     config.setNumberOfDataPoints(ts.length);
     //config.setPeriodic(true);
-    final STLDecomposition stl = new STLDecomposition(config);
-    final STLResult res = stl.decompose(tsLong, ys);
+    final StlDecomposition stl = new StlDecomposition(config);
+    final StlResult res = stl.decompose(tsLong, ys);
 
-    STLPlotter.plot(res);
+    StlPlotter.plot(res);
 
     objectMapper.writerWithDefaultPrettyPrinter().writeValue(new FileOutputStream(output), res);
   }

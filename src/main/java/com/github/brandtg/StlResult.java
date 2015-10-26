@@ -3,16 +3,20 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *         http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * </p>
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * <p>
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ * </p>
  */
-package com.github.brandtg;
 
+package com.github.brandtg;
 
 /**
  * The STL decomposition of a time series.
@@ -21,14 +25,25 @@ package com.github.brandtg;
  * getData() == getTrend() + getSeasonal() + getRemainder()
  * </p>
  */
-public class STLResult {
+public class StlResult {
   private final long[] times;
   private final double[] series;
   private final double[] trend;
   private final double[] seasonal;
   private final double[] remainder;
 
-  public STLResult(final long[] times, final double[] series, final double[] trend, final double[] seasonal, final double[] remainder) {
+  /**
+   * Constructs the result of running {@link StlDecomposition}.
+   *
+   * <p>
+   *   Wraps the original times and series data, and adds the trend, seasonal, and remainder.
+   * </p>
+   */
+  public StlResult(long[] times,
+                   double[] series,
+                   double[] trend,
+                   double[] seasonal,
+                   double[] remainder) {
     this.times = times;
     this.series = series;
     this.trend = trend;

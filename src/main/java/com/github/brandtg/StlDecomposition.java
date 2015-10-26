@@ -3,21 +3,26 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *         http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * </p>
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * <p>
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ * </p>
  */
-package com.github.brandtg;
 
-import java.util.ArrayList;
-import java.util.List;
+package com.github.brandtg;
 
 import org.apache.commons.math3.analysis.interpolation.LoessInterpolator;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Implementation of STL: A Seasonal-Trend Decomposition Procedure based on
@@ -33,11 +38,10 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
  * @author Jieying Chen
  * @author James Hong
  */
-public class STLDecomposition {
-  private static final int LOESS_ROBUSTNESS_ITERATIONS = 4; // same as R
-                                                            // implementation
+public class StlDecomposition {
+  private static final int LOESS_ROBUSTNESS_ITERATIONS = 4; // same as R implementation
 
-  private final STLConfig  config;
+  private final StlConfig config;
 
   /**
    * Constructs a configuration of STL function that can de-trend data.
@@ -53,12 +57,19 @@ public class STLDecomposition {
    * source points closest to the current point, as opposed to integral values.
    * </p>
    */
-  public STLDecomposition(STLConfig config) {
+  public StlDecomposition(StlConfig config) {
     config.check();
     this.config = config;
   }
 
-  public STLResult decompose(long[] times, double[] series) {
+  /**
+   * Constructs the STL decomposition of a time series.
+   *
+   * <p>
+   *   times.length == series.length
+   * </p>
+   */
+  public StlResult decompose(long[] times, double[] series) {
     double[] trend = new double[series.length];
     double[] seasonal = new double[series.length];
     double[] remainder = new double[series.length];
@@ -82,7 +93,10 @@ public class STLDecomposition {
 
         // Step 2: Cycle-subseries Smoothing
         for (int i = 0; i < cycleSubseries.size(); i++) {
-          double[] smoothed = loessSmooth(cycleTimes.get(i), cycleSubseries.get(i), config.getSeasonalComponentBandwidth(),
+          double[] smoothed = loessSmooth(
+              cycleTimes.get(i),
+              cycleSubseries.get(i),
+              config.getSeasonalComponentBandwidth(),
               cycleRobustnessWeights.get(i));
           cycleSubseries.set(i, smoothed);
         }
@@ -132,9 +146,9 @@ public class STLDecomposition {
      * - z$trend y <- cbind(seasonal = z$seasonal, trend = z$trend, remainder =
      * remainder)
      */
-    if (config.isPeriodic()){
+    if (config.isPeriodic()) {
       double [] seasonalWeights = weightedMeanSmooth(seasonal, robustness);
-      for (int i = 0; i < series.length; i++){
+      for (int i = 0; i < series.length; i++) {
         seasonal[i] = seasonal[i] * seasonalWeights[i];
         
         /** Recalculate remainder now... */
@@ -142,7 +156,7 @@ public class STLDecomposition {
       }
     }
 
-    return new STLResult(times, series, trend, seasonal, remainder);
+    return new StlResult(times, series, trend, seasonal, remainder);
   }
 
   private static class CycleSubSeries {
@@ -216,22 +230,22 @@ public class STLDecomposition {
       absRemainder[i] = Math.abs(remainder[i]);
     }
     DescriptiveStatistics stats = new DescriptiveStatistics(absRemainder);
-    double h = 6 * stats.getPercentile(50);
+    double outlierThreshold = 6 * stats.getPercentile(50);
 
     // Compute robustness weights
     double[] robustness = new double[remainder.length];
     for (int i = 0; i < remainder.length; i++) {
-      robustness[i] = biSquareWeight(absRemainder[i] / h);
+      robustness[i] = biSquareWeight(absRemainder[i] / outlierThreshold);
     }
 
     return robustness;
   }
 
-  private double biSquareWeight(double u) {
-    if (u < 0) {
-      throw new IllegalArgumentException("Invalid u, must be >= 0: " + u);
-    } else if (u < 1) {
-      return Math.pow(1 - Math.pow(u, 2), 2);
+  private double biSquareWeight(double value) {
+    if (value < 0) {
+      throw new IllegalArgumentException("Invalid value, must be >= 0: " + value);
+    } else if (value < 1) {
+      return Math.pow(1 - Math.pow(value, 2), 2);
     } else {
       return 0;
     }
@@ -249,6 +263,8 @@ public class STLDecomposition {
   }
 
   /**
+   * Performs weighted Loess smoothing on a series, assuming contiguous time.
+   *
    * @param weights
    *          The weights to use for smoothing, if null, equal weights are
    *          assumed
@@ -263,6 +279,8 @@ public class STLDecomposition {
   }
 
   /**
+   * Performs weighted Loess smoothing on a time series.
+   *
    * @param weights
    *          The weights to use for smoothing, if null, equal weights are
    *          assumed
