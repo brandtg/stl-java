@@ -18,8 +18,7 @@ public class PlotTest {
   @Test
   public void testPlot() throws Exception {
     final ObjectMapper objectMapper = new ObjectMapper();
-    final JsonNode tree = objectMapper
-        .readTree(new File(this.getClass().getResource("/sample-timeseries.json").getFile()));
+    final JsonNode tree = objectMapper.readTree(new File(this.getClass().getResource("/sample-timeseries.json").getFile()));
     final int n = tree.get("times").size();
     final long[] tsLong = new long[n];
     final double[] ts = new double[n];
@@ -43,6 +42,6 @@ public class PlotTest {
 
     final STLDecomposition stl = new STLDecomposition(config);
     final STLResult res = stl.decompose(tsLong, ys);
-    res.plot();
+    STLPlotter.plot(res);
   }
 }

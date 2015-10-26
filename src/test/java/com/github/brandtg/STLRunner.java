@@ -42,7 +42,8 @@ public class STLRunner {
    *   }
    * </pre>
    *
-   * n.b. This isn't really meant to be used on anything besides src/test/resources/sample-timeseries.json, just an example.
+   * n.b. This isn't really meant to be used on anything besides
+   * src/test/resources/sample-timeseries.json, just an example.
    */
 
   public static void main(final String[] args) throws Exception {
@@ -82,7 +83,7 @@ public class STLRunner {
     final STLDecomposition stl = new STLDecomposition(config);
     final STLResult res = stl.decompose(tsLong, ys);
 
-    res.plot();
+    STLPlotter.plot(res);
 
     objectMapper.writerWithDefaultPrettyPrinter().writeValue(new FileOutputStream(output), res);
   }
