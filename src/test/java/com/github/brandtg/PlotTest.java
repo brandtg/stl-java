@@ -30,7 +30,7 @@ public class PlotTest {
       ys[i] = tree.get("series").get(i).asDouble();
     }
 
-    final STLConfig config = new STLConfig();
+    final StlConfig config = new StlConfig();
 
     config.setNumberOfObservations(12);
     config.setNumberOfInnerLoopPasses(10);
@@ -40,8 +40,8 @@ public class PlotTest {
     config.setTrendComponentBandwidth(0.10);
     config.setNumberOfDataPoints(ts.length);
 
-    final STLDecomposition stl = new STLDecomposition(config);
-    final STLResult res = stl.decompose(tsLong, ys);
-    STLPlotter.plot(res);
+    final StlDecomposition stl = new StlDecomposition(config);
+    final StlResult res = stl.decompose(tsLong, ys);
+    StlPlotter.plot(res);
   }
 }
