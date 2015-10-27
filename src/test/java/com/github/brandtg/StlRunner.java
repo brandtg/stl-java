@@ -84,6 +84,7 @@ public class StlRunner {
     final StlDecomposition stl = new StlDecomposition(config);
     final StlResult res = stl.decompose(tsLong, ys);
 
+
     StlPlotter.plot(res);
 
     objectMapper.writerWithDefaultPrettyPrinter().writeValue(new FileOutputStream(output), res);
