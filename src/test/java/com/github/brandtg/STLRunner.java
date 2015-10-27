@@ -80,6 +80,7 @@ public class STLRunner {
     config.setLowPassFilterBandwidth(0.30);
     config.setTrendComponentBandwidth(0.10);
     config.setNumberOfDataPoints(ts.length);
+    //config.setPeriodic(true);
     final STLDecomposition stl = new STLDecomposition(config);
     final STLResult res = stl.decompose(tsLong, ys);
 

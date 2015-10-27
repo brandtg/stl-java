@@ -132,6 +132,15 @@ public class STLDecomposition {
      * - z$trend y <- cbind(seasonal = z$seasonal, trend = z$trend, remainder =
      * remainder)
      */
+    if (config.isPeriodic()){
+      double [] seasonalWeights = weightedMeanSmooth(seasonal, robustness);
+      for (int i = 0; i < series.length; i++){
+        seasonal[i] = seasonal[i] * seasonalWeights[i];
+        
+        /** Recalculate remainder now... */
+        remainder[i] = series[i] - trend[i] - seasonal[i];
+      }
+    }
 
     return new STLResult(times, series, trend, seasonal, remainder);
   }
