@@ -80,6 +80,7 @@ public class StlRunner {
     config.setLowPassFilterBandwidth(0.30);
     config.setTrendComponentBandwidth(0.10);
     config.setNumberOfDataPoints(ts.length);
+    //config.setPeriodic(true);
     final StlDecomposition stl = new StlDecomposition(config);
     final StlResult res = stl.decompose(tsLong, ys);
 

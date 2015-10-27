@@ -138,14 +138,14 @@ public class StlDecomposition {
       robustness = robustnessWeights(remainder);
     }
 
-    // TODO: The R code does cycle subseries weighted mean smoothing on seasonal
-    // component here
-    /*
-     * if (periodic) { which.cycle <- cycle(x) z$seasonal <- tapply(z$seasonal,
-     * which.cycle, mean)[which.cycle] } remainder <- as.vector(x) - z$seasonal
-     * - z$trend y <- cbind(seasonal = z$seasonal, trend = z$trend, remainder =
-     * remainder)
-     */
+    if (config.isPeriodic()) {
+      double [] seasonalWeights = weightedMeanSmooth(seasonal, robustness);
+      for (int i = 0; i < series.length; i++) {
+        seasonal[i] = seasonal[i] * seasonalWeights[i];
+        /** Recalculate remainder now... */
+        remainder[i] = series[i] - trend[i] - seasonal[i];
+      }
+    }
 
     return new StlResult(times, series, trend, seasonal, remainder);
   }
