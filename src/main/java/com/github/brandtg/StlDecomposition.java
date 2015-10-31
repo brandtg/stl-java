@@ -74,11 +74,11 @@ public class StlDecomposition {
     double[] seasonal = new double[series.length];
     double[] remainder = new double[series.length];
     double[] robustness = null;
+    double[] detrend = new double[series.length];
 
     for (int l = 0; l < config.getNumberOfRobustnessIterations(); l++) {
       for (int k = 0; k < config.getNumberOfInnerLoopPasses(); k++) {
-        // Step 1: Detrending
-        double[] detrend = new double[series.length];
+        // Step 1: De-trending
         for (int i = 0; i < series.length; i++) {
           detrend[i] = series[i] - trend[i];
         }
@@ -152,16 +152,16 @@ public class StlDecomposition {
 
   private static class CycleSubSeries {
     // Output
-    private final List<double[]> cycleSubSeries         = new ArrayList<double[]>();
-    private final List<double[]> cycleTimes             = new ArrayList<double[]>();
+    private final List<double[]> cycleSubSeries = new ArrayList<double[]>();
+    private final List<double[]> cycleTimes = new ArrayList<double[]>();
     private final List<double[]> cycleRobustnessWeights = new ArrayList<double[]>();
 
     // Input
-    private final int            numberOfObservations;
-    private final long[]         times;
-    private final double[]       series;
-    private final double[]       robustness;
-    private final double[]       detrend;
+    private final int numberOfObservations;
+    private final long[] times;
+    private final double[] series;
+    private final double[] robustness;
+    private final double[] detrend;
 
     CycleSubSeries(long[] times, double[] series, double[] robustness, double[] detrend, int numberOfObservations) {
       this.times = times;
