@@ -69,12 +69,13 @@ public class StlDecomposition {
    *   times.length == series.length
    * </p>
    */
-  public StlResult decompose(long[] times, double[] series) {
+  public StlResult decompose(double[] times, double[] series) {
     double[] trend = new double[series.length];
     double[] seasonal = new double[series.length];
     double[] remainder = new double[series.length];
     double[] robustness = null;
     double[] detrend = new double[series.length];
+    double[] combinedSmoothed = new double[series.length];
 
     for (int l = 0; l < config.getNumberOfRobustnessIterations(); l++) {
       for (int k = 0; k < config.getNumberOfInnerLoopPasses(); k++) {
@@ -102,7 +103,6 @@ public class StlDecomposition {
         }
 
         // Combine smoothed series into one
-        double[] combinedSmoothed = new double[series.length];
         for (int i = 0; i < cycleSubseries.size(); i++) {
           double[] subseriesValues = cycleSubseries.get(i);
           for (int cycleIdx = 0; cycleIdx < subseriesValues.length; cycleIdx++) {
@@ -124,7 +124,7 @@ public class StlDecomposition {
         }
 
         // Step 6: Trend Smoothing
-        trend = loessSmooth(trend, config.getTrendComponentBandwidth(), robustness);
+        trend = loessSmooth(times, trend, config.getTrendComponentBandwidth(), robustness);
       }
 
       // --- Now in outer loop ---
@@ -158,12 +158,16 @@ public class StlDecomposition {
 
     // Input
     private final int numberOfObservations;
-    private final long[] times;
+    private final double[] times;
     private final double[] series;
     private final double[] robustness;
     private final double[] detrend;
 
-    CycleSubSeries(long[] times, double[] series, double[] robustness, double[] detrend, int numberOfObservations) {
+    CycleSubSeries(double[] times,
+                   double[] series,
+                   double[] robustness,
+                   double[] detrend,
+                   int numberOfObservations) {
       this.times = times;
       this.series = series;
       this.robustness = robustness;

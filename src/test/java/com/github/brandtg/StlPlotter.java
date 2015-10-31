@@ -42,16 +42,16 @@ public class StlPlotter {
   private static class ResultsPlot extends ApplicationFrame {
 
     private static final long serialVersionUID = 1L;
-    private final JFreeChart  chart;
-    private final ChartPanel  chartPanel;
-    private final String      title;
+    private final JFreeChart chart;
+    private final ChartPanel chartPanel;
+    private final String title;
 
-    private final Class<?>    timePeriod;
-    private final double[]    series;
-    private final double[]    seasonal;
-    private final double[]    trend;
-    private final long[]      times;
-    private final double[]    remainder;
+    private final Class<?> timePeriod;
+    private final double[] series;
+    private final double[] seasonal;
+    private final double[] trend;
+    private final double[] times;
+    private final double[] remainder;
 
     public ResultsPlot(final StlResult stlResults, final String title, final Class<?> timePeriod) {
       super(title);
@@ -93,7 +93,7 @@ public class StlPlotter {
       try {
         cons = this.timePeriod.getConstructor(Date.class);
         for (int i = 0; i < series.length; i++) {
-          final Date d = new Date(times[i]);
+          final Date d = new Date((long) times[i]);
           seriests.add((RegularTimePeriod) cons.newInstance(d), series[i]);
           seasonalts.add(new Minute(d), seasonal[i]);
           trendts.add(new Minute(d), trend[i]);

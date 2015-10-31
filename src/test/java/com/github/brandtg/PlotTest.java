@@ -20,12 +20,10 @@ public class PlotTest {
     final ObjectMapper objectMapper = new ObjectMapper();
     final JsonNode tree = objectMapper.readTree(new File(this.getClass().getResource("/sample-timeseries.json").getFile()));
     final int n = tree.get("times").size();
-    final long[] tsLong = new long[n];
     final double[] ts = new double[n];
     final double[] ys = new double[n];
 
     for (int i = 0; i < n; i++) {
-      tsLong[i] = tree.get("times").get(i).asLong();
       ts[i] = tree.get("times").get(i).asDouble();
       ys[i] = tree.get("series").get(i).asDouble();
     }
@@ -41,7 +39,7 @@ public class PlotTest {
     config.setNumberOfDataPoints(ts.length);
 
     final StlDecomposition stl = new StlDecomposition(config);
-    final StlResult res = stl.decompose(tsLong, ys);
+    final StlResult res = stl.decompose(ts, ys);
     StlPlotter.plot(res);
   }
 }

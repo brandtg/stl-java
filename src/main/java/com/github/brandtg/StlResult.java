@@ -26,7 +26,7 @@ package com.github.brandtg;
  * </p>
  */
 public class StlResult {
-  private final long[] times;
+  private final double[] times;
   private final double[] series;
   private final double[] trend;
   private final double[] seasonal;
@@ -39,7 +39,7 @@ public class StlResult {
    *   Wraps the original times and series data, and adds the trend, seasonal, and remainder.
    * </p>
    */
-  public StlResult(long[] times,
+  public StlResult(double[] times,
                    double[] series,
                    double[] trend,
                    double[] seasonal,
@@ -51,7 +51,7 @@ public class StlResult {
     this.remainder = remainder;
   }
 
-  public long[] getTimes() {
+  public double[] getTimes() {
     return times;
   }
 
