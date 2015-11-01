@@ -31,11 +31,6 @@ public class PlotTest {
     final StlConfig config = new StlConfig();
 
     config.setNumberOfObservations(12);
-    config.setNumberOfInnerLoopPasses(10);
-    config.setNumberOfRobustnessIterations(1);
-    config.setSeasonalComponentBandwidth(0.75);
-    config.setLowPassFilterBandwidth(0.30);
-    config.setTrendComponentBandwidth(0.10);
     config.setNumberOfDataPoints(ts.length);
 
     final StlDecomposition stl = new StlDecomposition(config);
