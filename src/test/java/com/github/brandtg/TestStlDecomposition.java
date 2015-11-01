@@ -21,10 +21,7 @@ public class TestStlDecomposition {
     config = new StlConfig();
     config.setNumberOfObservations(numObservations);
     config.setNumberOfInnerLoopPasses(10);
-    config.setNumberOfRobustnessIterations(1);
-    config.setSeasonalComponentBandwidth(0.75);
-    config.setLowPassFilterBandwidth(0.30);
-    config.setTrendComponentBandwidth(0.10);
+    config.setNumberOfRobustnessIterations(2);
     config.setNumberOfDataPoints(numDataPoints);
   }
 

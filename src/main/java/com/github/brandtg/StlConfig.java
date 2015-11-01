@@ -26,15 +26,17 @@ public class StlConfig {
   // The number of robustness iterations of the outer loop, n_o
   private int numberOfRobustnessIterations = 1;
   // The smoothing parameter for the low pass filter, like n_l
-  private double lowPassFilterBandwidth = 0.25;
+  private double lowPassFilterBandwidth = 0.50;
   // The smoothing parameter for the trend component, like n_t
-  private double trendComponentBandwidth = 0.25;
+  private double trendComponentBandwidth = 0.50;
   // The smoothing parameter for the seasonal component, like n_s
-  private double seasonalComponentBandwidth = 0.25;
+  private double seasonalComponentBandwidth = 0.50;
   // Whether the series is periodic, if this is true, then seasonalComponentBandwidth is ignored.
-  private boolean periodic = false;
+  private boolean periodic = true;
   // The total length of the time series
   private int numberOfDataPoints;
+  // The number of robustness iterations in each invocation of Loess
+  private int loessRobustnessIterations = 4; // same as R
 
   public StlConfig() {}
 
@@ -100,6 +102,14 @@ public class StlConfig {
 
   public void setNumberOfDataPoints(int numberOfDataPoints) {
     this.numberOfDataPoints = numberOfDataPoints;
+  }
+
+  public int getLoessRobustnessIterations() {
+    return loessRobustnessIterations;
+  }
+
+  public void setLoessRobustnessIterations(int loessRobustnessIterations) {
+    this.loessRobustnessIterations = loessRobustnessIterations;
   }
 
   /**

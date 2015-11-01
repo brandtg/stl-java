@@ -39,8 +39,6 @@ import java.util.List;
  * @author James Hong
  */
 public class StlDecomposition {
-  private static final int LOESS_ROBUSTNESS_ITERATIONS = 4; // same as R implementation
-
   private final StlConfig config;
 
   /**
@@ -283,9 +281,9 @@ public class StlDecomposition {
    */
   private double[] loessSmooth(double[] times, double[] series, double bandwidth, double[] weights) {
     if (weights == null) {
-      return new LoessInterpolator(bandwidth, LOESS_ROBUSTNESS_ITERATIONS).smooth(times, series);
+      return new LoessInterpolator(bandwidth, config.getLoessRobustnessIterations()).smooth(times, series);
     } else {
-      return new LoessInterpolator(bandwidth, LOESS_ROBUSTNESS_ITERATIONS).smooth(times, series, weights);
+      return new LoessInterpolator(bandwidth, config.getLoessRobustnessIterations()).smooth(times, series, weights);
     }
   }
 
