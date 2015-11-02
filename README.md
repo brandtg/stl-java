@@ -1,6 +1,8 @@
 stl-java
 ========
 
+![travis-ci-status](https://travis-ci.org/brandtg/stl-java.svg?branch=master)
+
 A Java implementation of [STL: A Seasonal-Trend Decomposition Procedure Based on Loess](http://www.wessa.net/download/stl.pdf)
 
 Example
