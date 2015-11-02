@@ -15,7 +15,7 @@ public class PlotTest {
 
   }
 
-  @Test
+  @Test(enabled = false)
   public void testPlot() throws Exception {
     final ObjectMapper objectMapper = new ObjectMapper();
     final JsonNode tree = objectMapper.readTree(new File(this.getClass().getResource("/sample-timeseries.json").getFile()));
