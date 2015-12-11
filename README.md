@@ -5,6 +5,16 @@ stl-java
 
 A Java implementation of [STL: A Seasonal-Trend Decomposition Procedure Based on Loess](http://www.wessa.net/download/stl.pdf)
 
+To include this library in your project, add the following dependency
+
+```
+<dependency>
+  <groupId>com.github.brandtg</groupId>
+  <artifactId>stl-java</artifactId>
+  <version>0.0.1</version>
+</dependency>
+```
+
 Example
 -------
 
