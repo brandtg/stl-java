@@ -28,9 +28,9 @@ public class StlConfig {
   // The smoothing parameter for the low pass filter, like n_l
   private double lowPassFilterBandwidth = 0.50;
   // The smoothing parameter for the trend component, like n_t
-  private double trendComponentBandwidth = 0.50;
+  private double trendComponentBandwidth = 1.0;
   // The smoothing parameter for the seasonal component, like n_s
-  private double seasonalComponentBandwidth = 0.50;
+  private double seasonalComponentBandwidth = 1.0;
   // Whether the series is periodic, if this is true, then seasonalComponentBandwidth is ignored.
   private boolean periodic = true;
   // The total length of the time series
