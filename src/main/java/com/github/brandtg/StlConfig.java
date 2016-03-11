@@ -32,7 +32,7 @@ public class StlConfig {
   // The smoothing parameter for the seasonal component, like n_s
   private double seasonalComponentBandwidth = 1.0;
   // Whether the series is periodic, if this is true, then seasonalComponentBandwidth is ignored.
-  private boolean periodic = true;
+  private boolean periodic = false;
   // The total length of the time series
   private int numberOfDataPoints;
   // The number of robustness iterations in each invocation of Loess
