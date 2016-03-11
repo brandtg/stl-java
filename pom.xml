@@ -3,7 +3,7 @@
   <groupId>com.github.brandtg</groupId>
   <artifactId>stl-java</artifactId>
   <packaging>jar</packaging>
-  <version>0.0.1</version>
+  <version>0.0.2</version>
   <name>stl-java</name>
   <url>http://maven.apache.org</url>
   <description>
