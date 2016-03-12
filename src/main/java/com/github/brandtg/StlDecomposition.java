@@ -259,8 +259,7 @@ public class StlDecomposition {
   }
 
   private double[] lowPassFilter(double[] series, double[] weights) {
-    // Apply moving average of length n_p, twice
-    series = movingAverage(series, config.getNumberOfObservations());
+    // Apply moving average of length n_p
     series = movingAverage(series, config.getNumberOfObservations());
     // Apply moving average of length 3
     series = movingAverage(series, 3);
