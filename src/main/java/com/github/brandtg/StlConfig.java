@@ -26,7 +26,7 @@ public class StlConfig {
   // The number of robustness iterations of the outer loop, n_o
   private int numberOfRobustnessIterations = 2;
   // The smoothing parameter for the low pass filter, like n_l
-  private double lowPassFilterBandwidth = 0.50;
+  private double lowPassFilterBandwidth = 0.75;
   // The smoothing parameter for the trend component, like n_t
   private double trendComponentBandwidth = 1.0;
   // The smoothing parameter for the seasonal component, like n_s
