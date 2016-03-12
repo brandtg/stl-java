@@ -3,7 +3,7 @@
   <groupId>com.github.brandtg</groupId>
   <artifactId>stl-java</artifactId>
   <packaging>jar</packaging>
-  <version>0.0.2</version>
+  <version>0.0.2-SNAPSHOT</version>
   <name>stl-java</name>
   <url>http://maven.apache.org</url>
   <description>
@@ -148,18 +148,6 @@
         <groupId>org.sonatype.plugins</groupId>
         <artifactId>nexus-staging-maven-plugin</artifactId>
         <version>1.6.6</version>
-        <extensions>true</extensions>
-        <configuration>
-          <serverId>ossrh</serverId>
-          <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-          <autoReleaseAfterClose>true</autoReleaseAfterClose>
-        </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>org.sonatype.plugins</groupId>
-        <artifactId>nexus-staging-maven-plugin</artifactId>
-        <version>1.6.3</version>
         <extensions>true</extensions>
         <configuration>
           <serverId>ossrh</serverId>
