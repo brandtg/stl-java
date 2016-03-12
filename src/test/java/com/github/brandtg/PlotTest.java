@@ -2,9 +2,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,11 +15,14 @@ package com.github.brandtg;
 
 import java.io.File;
 
+import org.jfree.data.time.Hour;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import static org.testng.Assert.assertTrue;
 
 public class PlotTest {
 
@@ -28,7 +31,7 @@ public class PlotTest {
 
   }
 
-  @Test(enabled = false)
+  @Test(enabled = true)
   public void testPlot() throws Exception {
     final ObjectMapper objectMapper = new ObjectMapper();
     final JsonNode tree = objectMapper.readTree(new File(this.getClass().getResource("/sample-timeseries.json").getFile()));
@@ -48,6 +51,25 @@ public class PlotTest {
 
     final StlDecomposition stl = new StlDecomposition(config);
     final StlResult res = stl.decompose(ts, ys);
+
+    final File output = new File("seasonal.png");
+    final File hourly = new File("stl-hourly.png");
+
+    StlPlotter.plot(res, "New Title", Hour.class, hourly);
+    StlPlotter.plot(res, output);
     StlPlotter.plot(res);
+
+    assertTrue(output.exists());
+    assertTrue(hourly.exists());
+
+    final File exists = new File("stl-decomposition.png");
+    assertTrue(exists.exists());
+    assertTrue(exists.delete());
+
+    StlPlotter.plot(res, "Test Title");
+
+    assertTrue(exists.exists());
+
+
   }
 }

@@ -2,9 +2,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -13,18 +13,20 @@
  */
 package com.github.brandtg;
 
-import java.awt.Color;
-import java.awt.GradientPaint;
+import java.awt.*;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 import org.jfree.chart.ChartPanel;
+import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.DateAxis;
 import org.jfree.chart.axis.NumberAxis;
@@ -39,23 +41,25 @@ import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.ui.ApplicationFrame;
-import org.jfree.ui.RefineryUtilities;
 
 public class StlPlotter {
 
-  public static void plot(final StlResult stlResult) {
+
+  static void plot(final StlResult stlResult) throws IOException {
     StlPlotter.plot(stlResult, "Seasonal Decomposition");
   }
 
-  public static void plot(final StlResult stlResult, final String title) {
-    StlPlotter.plot(stlResult, title, Minute.class);
+  static void plot(final StlResult stlResult, final File save) throws IOException {
+    StlPlotter.plot(stlResult, "Seasonal Decomposition", Minute.class, save);
   }
 
-  public static void plot(final StlResult stlResult, final String title, final Class<?> timePeriod) {
+  static void plot(final StlResult stlResult, final String title) throws IOException {
+    StlPlotter.plot(stlResult, title, Minute.class, new File("stl-decomposition.png"));
+  }
+
+  static void plot(final StlResult stlResult, final String title, final Class<?> timePeriod, final File save) throws IOException {
     final ResultsPlot plot = new ResultsPlot(stlResult, title, timePeriod);
-    plot.pack();
-    RefineryUtilities.centerFrameOnScreen(plot);
-    plot.setVisible(true);
+    ChartUtilities.saveChartAsPNG(save, plot.chart, 800, 600);
   }
 
   private static class ResultsPlot extends ApplicationFrame {
@@ -72,7 +76,7 @@ public class StlPlotter {
     private final double[] times;
     private final double[] remainder;
 
-    public ResultsPlot(final StlResult stlResults, final String title, final Class<?> timePeriod) {
+    ResultsPlot(final StlResult stlResults, final String title, final Class<?> timePeriod) {
       super(title);
 
       this.series = stlResults.getSeries();
@@ -105,21 +109,16 @@ public class StlPlotter {
       final TimeSeries trendts = new TimeSeries("Trend");
       final TimeSeries remainderts = new TimeSeries("Remainder");
 
-      final TimeSeries[] tsArray = new TimeSeries[] { seriests, seasonalts, trendts };
-      final String[] labels = new String[] { "Series", "Seasonal", "Trend" };
+      final TimeSeries[] tsArray = new TimeSeries[]{seriests, seasonalts, trendts};
+      final String[] labels = new String[]{"Series", "Seasonal", "Trend"};
 
-      final Constructor<?> cons;
-      try {
-        cons = this.timePeriod.getConstructor(Date.class);
-        for (int i = 0; i < series.length; i++) {
-          final Date d = new Date((long) times[i]);
-          seriests.add((RegularTimePeriod) cons.newInstance(d), series[i]);
-          seasonalts.add(new Minute(d), seasonal[i]);
-          trendts.add(new Minute(d), trend[i]);
-          remainderts.add(new Minute(d), remainder[i]);
-        }
-      } catch (final Exception e) {
-        e.printStackTrace();
+      for (int i = 0; i < series.length; i++) {
+        final Date d = new Date((long) times[i]);
+        RegularTimePeriod rtp = RegularTimePeriod.createInstance(this.timePeriod, d, TimeZone.getDefault());
+        seriests.addOrUpdate(rtp, series[i]);
+        seasonalts.addOrUpdate(rtp, seasonal[i]);
+        trendts.addOrUpdate(rtp, trend[i]);
+        remainderts.addOrUpdate(rtp, remainder[i]);
       }
 
       plot.setGap(10.0);
