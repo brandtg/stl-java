@@ -137,10 +137,24 @@ public class StlDecomposition {
     }
 
     if (config.isPeriodic()) {
-      double [] seasonalWeights = weightedMeanSmooth(seasonal, robustness);
+      for (int i = 0; i < config.getNumberOfObservations(); i++) {
+        // Compute weighted mean for one season
+        double sum = 0.0;
+        int count = 0;
+        for (int j = i; j < config.getNumberOfDataPoints(); j += config.getNumberOfObservations()) {
+          sum += seasonal[j];
+          count++;
+        }
+        double mean = sum / count;
+
+        // Copy this to rest of seasons
+        for (int j = i; j < config.getNumberOfDataPoints(); j+= config.getNumberOfObservations()) {
+          seasonal[j] = mean;
+        }
+      }
+
+      // Recalculate remainder
       for (int i = 0; i < series.length; i++) {
-        seasonal[i] = seasonal[i] * seasonalWeights[i];
-        /** Recalculate remainder now... */
         remainder[i] = series[i] - trend[i] - seasonal[i];
       }
     }
@@ -285,30 +299,6 @@ public class StlDecomposition {
     } else {
       return new LoessInterpolator(bandwidth, config.getLoessRobustnessIterations()).smooth(times, series, weights);
     }
-  }
-
-  private double[] weightedMeanSmooth(double[] series, double[] weights) {
-    double[] smoothed = new double[series.length];
-    double mean = 0;
-    double sumOfWeights = 0;
-    for (int i = 0; i < series.length; i++) {
-      double weight = (weights != null) ? weights[i] : 1; // equal weights if
-                                                          // none specified
-      mean += weight * series[i];
-      sumOfWeights += weight;
-    }
-    // TODO: This is a hack to not have NaN values
-    if (sumOfWeights == 0) {
-      for (int i = 0; i < series.length; i++) {
-        smoothed[i] = series[i];
-      }
-    } else {
-      mean /= sumOfWeights;
-      for (int i = 0; i < series.length; i++) {
-        smoothed[i] = mean;
-      }
-    }
-    return smoothed;
   }
 
   private double[] movingAverage(double[] series, int window) {
