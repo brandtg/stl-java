@@ -2,8 +2,14 @@ package com.github.brandtg;
 
 import java.awt.Color;
 import java.awt.GradientPaint;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -128,5 +134,29 @@ public class StlPlotter {
 
       return new JFreeChart(this.title, JFreeChart.DEFAULT_TITLE_FONT, plot, true);
     }
+  }
+
+  public static void main(String[] args) throws Exception {
+    List<Long> times = new ArrayList<>();
+    List<Number> series = new ArrayList<>();
+    try (InputStream is = new FileInputStream(args[1]);
+         BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
+      String line = reader.readLine(); // header
+      while ((line = reader.readLine()) != null) {
+        String[] tokens = line.split(",");
+        times.add(Long.valueOf(tokens[0]));
+        series.add(Double.valueOf(tokens[1]));
+      }
+    }
+
+    StlConfig config = new StlConfig();
+    config.setNumberOfObservations(Integer.valueOf(args[0]));
+    config.setNumberOfDataPoints(times.size());
+    config.setNumberOfRobustnessIterations(1);
+    config.setPeriodic(true);
+
+    StlResult result = new StlDecomposition(config).decompose(times, series);
+
+    plot(result);
   }
 }
