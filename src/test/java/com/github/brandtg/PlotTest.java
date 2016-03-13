@@ -22,7 +22,7 @@ import org.testng.annotations.Test;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import static org.testng.Assert.assertTrue;
+import junit.framework.Assert;
 
 public class PlotTest {
 
@@ -59,16 +59,16 @@ public class PlotTest {
     StlPlotter.plot(res, output);
     StlPlotter.plot(res);
 
-    assertTrue(output.exists());
-    assertTrue(hourly.exists());
+    Assert.assertTrue(output.exists());
+    Assert.assertTrue(hourly.exists());
 
     final File exists = new File("stl-decomposition.png");
-    assertTrue(exists.exists());
-    assertTrue(exists.delete());
+    Assert.assertTrue(exists.exists());
+    Assert.assertTrue(exists.delete());
 
     StlPlotter.plot(res, "Test Title");
 
-    assertTrue(exists.exists());
+    Assert.assertTrue(exists.exists());
 
 
   }
