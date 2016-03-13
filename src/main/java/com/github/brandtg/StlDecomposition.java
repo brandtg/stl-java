@@ -60,6 +60,23 @@ public class StlDecomposition {
     this.config = config;
   }
 
+  public StlResult decompose(List<Long> times, List<Number> series) {
+    double[] timesArray = new double[times.size()];
+    double[] seriesArray = new double[series.size()];
+
+    int idx = 0;
+    for (Long time : times) {
+      timesArray[idx++] = time;
+    }
+
+    idx = 0;
+    for (Number value : series) {
+      seriesArray[idx++] = value.doubleValue();
+    }
+
+    return decompose(timesArray, seriesArray);
+  }
+
   /**
    * Constructs the STL decomposition of a time series.
    *
