@@ -19,8 +19,8 @@ public class StlConfig {
   private int numberOfObservations;
   // The number of passes through the inner loop, n_i
   private int numberOfInnerLoopPasses = 10;
-  // The number of robustness iterations of the outer loop, n_o
-  private int numberOfRobustnessIterations = 2;
+  // The number of robustness iterations of the outer loop, n_o (default: 1, like R's robust = FALSE)
+  private int numberOfRobustnessIterations = 1;
   // The smoothing parameter for the low pass filter, like n_l
   private double lowPassFilterBandwidth = 0.75;
   // The smoothing parameter for the trend component, like n_t
