@@ -42,4 +42,4 @@ And optionally plot the results (n.b. `StlPlotter` is in test scope)
 StlPlotter.plot(res);
 ```
 
-![STL result chart](doc/figure_2.png)
+![STL result chart](doc/figure_1.png)
