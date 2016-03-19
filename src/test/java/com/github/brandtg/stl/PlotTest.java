@@ -11,27 +11,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.brandtg;
+package com.github.brandtg.stl;
 
 import java.io.File;
 
 import org.jfree.data.time.Hour;
-import org.testng.annotations.BeforeClass;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import junit.framework.Assert;
-
 public class PlotTest {
-
-  @BeforeClass
-  public void setUp() {
-
-  }
-
-  @Test(enabled = true)
+  @Test
   public void testPlot() throws Exception {
     final ObjectMapper objectMapper = new ObjectMapper();
     final JsonNode tree = objectMapper.readTree(new File(this.getClass().getResource("/sample-timeseries.json").getFile()));
@@ -44,16 +36,14 @@ public class PlotTest {
       ys[i] = tree.get("series").get(i).asDouble();
     }
 
-    final StlConfig config = new StlConfig();
-
-    config.setNumberOfObservations(12);
-    config.setNumberOfDataPoints(ts.length);
-
-    final StlDecomposition stl = new StlDecomposition(config);
+    final StlDecomposition stl = new StlDecomposition(12);
     final StlResult res = stl.decompose(ts, ys);
 
     final File output = new File("seasonal.png");
     final File hourly = new File("stl-hourly.png");
+
+    output.deleteOnExit();
+    hourly.deleteOnExit();
 
     StlPlotter.plot(res, "New Title", Hour.class, hourly);
     StlPlotter.plot(res, output);
@@ -63,13 +53,10 @@ public class PlotTest {
     Assert.assertTrue(hourly.exists());
 
     final File exists = new File("stl-decomposition.png");
-    Assert.assertTrue(exists.exists());
-    Assert.assertTrue(exists.delete());
+    exists.deleteOnExit();
 
     StlPlotter.plot(res, "Test Title");
 
     Assert.assertTrue(exists.exists());
-
-
   }
 }

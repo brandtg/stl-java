@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.brandtg;
+package com.github.brandtg.stl;
 
 import java.awt.*;
 import java.io.BufferedReader;
@@ -41,6 +41,7 @@ import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.ui.ApplicationFrame;
+import org.jfree.ui.RefineryUtilities;
 
 public class StlPlotter {
 
@@ -60,6 +61,13 @@ public class StlPlotter {
   static void plot(final StlResult stlResult, final String title, final Class<?> timePeriod, final File save) throws IOException {
     final ResultsPlot plot = new ResultsPlot(stlResult, title, timePeriod);
     ChartUtilities.saveChartAsPNG(save, plot.chart, 800, 600);
+  }
+
+  static void plotOnScreen(final StlResult stlResult, final String title) {
+    final ResultsPlot plot = new ResultsPlot(stlResult, title, Minute.class);
+    plot.pack();
+    RefineryUtilities.centerFrameOnScreen(plot);
+    plot.setVisible(true);
   }
 
   private static class ResultsPlot extends ApplicationFrame {
@@ -149,26 +157,27 @@ public class StlPlotter {
   }
 
   public static void main(String[] args) throws Exception {
-    List<Long> times = new ArrayList<>();
-    List<Number> series = new ArrayList<>();
-    try (InputStream is = new FileInputStream(args[1]);
-         BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
-      String line = reader.readLine(); // header
+    List<Number> times = new ArrayList<Number>();
+    List<Number> series = new ArrayList<Number>();
+
+    InputStream is = new FileInputStream(args[1]);
+    BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+
+    try {
+      reader.readLine(); // header
+
+      String line;
       while ((line = reader.readLine()) != null) {
         String[] tokens = line.split(",");
         times.add(Long.valueOf(tokens[0]));
         series.add(Double.valueOf(tokens[1]));
       }
+    } finally {
+      is.close();
     }
 
-    StlConfig config = new StlConfig();
-    config.setNumberOfObservations(Integer.valueOf(args[0]));
-    config.setNumberOfDataPoints(times.size());
-    config.setNumberOfRobustnessIterations(1);
-    config.setPeriodic(true);
+    StlResult result = new StlDecomposition(Integer.valueOf(args[0])).decompose(times, series);
 
-    StlResult result = new StlDecomposition(config).decompose(times, series);
-
-    plot(result);
+    plotOnScreen(result, "Seasonal Decomposition");
   }
 }

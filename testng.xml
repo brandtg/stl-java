@@ -18,7 +18,7 @@
 <suite name="Suite" parallel="none">
   <test name="Test">
     <classes>
-      <class name="com.github.brandtg.PlotTest"/>
+      <class name="com.github.brandtg.stl.PlotTest"/>
     </classes>
   </test> <!-- Test -->
 </suite> <!-- Suite -->

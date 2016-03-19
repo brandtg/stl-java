@@ -12,34 +12,46 @@
  * limitations under the License.
  */
 
-package com.github.brandtg;
+package com.github.brandtg.stl;
 
 /**
  * The STL decomposition of a time series.
  *
  * <p>
- * getData() == getTrend() + getSeasonal() + getRemainder()
+ *  getData() == getTrend() + getSeasonal() + getRemainder()
  * </p>
  */
 public class StlResult {
+  /** The input times array, for convenience. */
   private final double[] times;
+  /** The input series, for convenience. */
   private final double[] series;
+  /** The trend component of series. */
   private final double[] trend;
+  /** The seasonal component of series. */
   private final double[] seasonal;
+  /** The remainder component of series */
   private final double[] remainder;
 
   /**
-   * Constructs the result of running {@link StlDecomposition}.
+   * Constructed by running {@link StlDecomposition}.
    *
-   * <p>
-   *   Wraps the original times and series data, and adds the trend, seasonal, and remainder.
-   * </p>
+   * @param times
+   *  The input times array.
+   * @param series
+   *  The input series.
+   * @param trend
+   *  The output trend component of series.
+   * @param seasonal
+   *  The output seasonal component of series.
+   * @param remainder
+   *  The output remainder component of series.
    */
-  public StlResult(double[] times,
-                   double[] series,
-                   double[] trend,
-                   double[] seasonal,
-                   double[] remainder) {
+  protected StlResult(double[] times,
+                      double[] series,
+                      double[] trend,
+                      double[] seasonal,
+                      double[] remainder) {
     this.times = times;
     this.series = series;
     this.trend = trend;
@@ -47,22 +59,37 @@ public class StlResult {
     this.remainder = remainder;
   }
 
+  /**
+   * @return The input times array, for convenience.
+   */
   public double[] getTimes() {
     return times;
   }
 
+  /**
+   * @return The input series array, for convenience.
+   */
   public double[] getSeries() {
     return series;
   }
 
+  /**
+   * @return The trend component of series.
+   */
   public double[] getTrend() {
     return trend;
   }
 
+  /**
+   * @return The seasonal component of series.
+   */
   public double[] getSeasonal() {
     return seasonal;
   }
 
+  /**
+   * @return The remainder component of series.
+   */
   public double[] getRemainder() {
     return remainder;
   }

@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.brandtg;
+package com.github.brandtg.stl;
 
 import org.joda.time.DateTime;
 import org.testng.Assert;
@@ -25,22 +25,16 @@ import java.util.List;
 public class TestStlDecomposition {
   private int numDataPoints;
   private int numObservations;
-  private StlConfig config;
 
   @BeforeClass
   public void beforeClass() {
     numDataPoints = 120; // i.e. 10 years
     numObservations = 12; // i.e. monthly
-    config = new StlConfig();
-    config.setNumberOfObservations(numObservations);
-    config.setNumberOfInnerLoopPasses(10);
-    config.setNumberOfRobustnessIterations(2);
-    config.setNumberOfDataPoints(numDataPoints);
   }
 
   @DataProvider
   public Object[][] simpleFunctionDataProvider() {
-    List<Object[]> data = new ArrayList<>();
+    List<Object[]> data = new ArrayList<Object[]>();
 
     // Common times
     DateTime dateTime = new DateTime();
@@ -98,7 +92,7 @@ public class TestStlDecomposition {
                                               double[] expectedTrend,
                                               double errorBound,
                                               int seasonsToSkip) {
-    StlResult result = new StlDecomposition(config).decompose(ts, ys);
+    StlResult result = new StlDecomposition(numObservations).decompose(ts, ys);
 
     // Ensure that the expected trend is within errorBound
     int seasonPadding = numObservations * seasonsToSkip;

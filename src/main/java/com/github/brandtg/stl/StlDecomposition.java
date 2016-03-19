@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-package com.github.brandtg;
+package com.github.brandtg.stl;
 
 import org.apache.commons.math3.analysis.interpolation.LoessInterpolator;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
@@ -21,24 +21,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Implementation of STL: A Seasonal-Trend Decomposition Procedure based on
- * Loess.
+ * This package contains an implementation of STL:
+ * A Seasonal-Trend Decomposition Procedure based on Loess.
  *
  * <p>
- * Robert B. Cleveland et al.,
- * "STL: A Seasonal-Trend Decomposition Procedure based on Loess," in Journal of
- * Official Statistics Vol. 6 No. 1, 1990, pp. 3-73
+ *  Robert B. Cleveland et al.,
+ *  "STL: A Seasonal-Trend Decomposition Procedure based on Loess," in Journal
+ *  of Official Statistics Vol. 6 No. 1, 1990, pp. 3-73
  * </p>
- *
- * @author Greg Brandt
- * @author Jieying Chen
- * @author James Hong
  */
 public class StlDecomposition {
+  /** The configuration with which to run STL. */
   private final StlConfig config;
 
   /**
-   * Constructs a configuration of STL function that can de-trend data.
+   * Constructs an STL function that can de-trend data.
    *
    * <p>
    * n.b. The Java Loess implementation only does linear local polynomial
@@ -50,19 +47,37 @@ public class StlDecomposition {
    * Also, the Java Loess implementation accepts "bandwidth", the fraction of
    * source points closest to the current point, as opposed to integral values.
    * </p>
+   *
+   * @param numberOfObservations The number of observations in a season.
    */
-  public StlDecomposition(StlConfig config) {
-    config.check();
-    this.config = config;
+  public StlDecomposition(int numberOfObservations) {
+    this.config = new StlConfig(numberOfObservations);
   }
 
-  public StlResult decompose(List<Long> times, List<Number> series) {
+  /**
+   * @return The configuration used by this function for fine tuning.
+   */
+  public StlConfig getConfig() {
+    return config;
+  }
+
+  /**
+   * A convenience method to use objects.
+   *
+   * @param times
+   *  A sequence of time values.
+   * @param series
+   *  A dependent variable on times.
+   * @return
+   *  The STL decomposition of the time series.
+   */
+  public StlResult decompose(List<Number> times, List<Number> series) {
     double[] timesArray = new double[times.size()];
     double[] seriesArray = new double[series.size()];
 
     int idx = 0;
-    for (Long time : times) {
-      timesArray[idx++] = time;
+    for (Number time : times) {
+      timesArray[idx++] = time.doubleValue();
     }
 
     idx = 0;
@@ -74,24 +89,34 @@ public class StlDecomposition {
   }
 
   /**
-   * Constructs the STL decomposition of a time series.
+   * Computes the STL decomposition of a times series.
    *
-   * <p>
-   *   times.length == series.length
-   * </p>
+   * @param times
+   *  A sequence of time values.
+   * @param series
+   *  A dependent variable on times.
+   * @return
+   *  The STL decomposition of the time series.
    */
   public StlResult decompose(double[] times, double[] series) {
-    double[] trend = new double[series.length];
-    double[] seasonal = new double[series.length];
-    double[] remainder = new double[series.length];
+    if (times.length != series.length) {
+      throw new IllegalArgumentException("Times (" + times.length +
+          ") and series (" + series.length + ") must be same size");
+    }
+    int numberOfDataPoints = series.length;
+    config.check(numberOfDataPoints);
+
+    double[] trend = new double[numberOfDataPoints];
+    double[] seasonal = new double[numberOfDataPoints];
+    double[] remainder = new double[numberOfDataPoints];
     double[] robustness = null;
-    double[] detrend = new double[series.length];
-    double[] combinedSmoothed = new double[series.length];
+    double[] detrend = new double[numberOfDataPoints];
+    double[] combinedSmoothed = new double[numberOfDataPoints];
 
     for (int l = 0; l < config.getNumberOfRobustnessIterations(); l++) {
       for (int k = 0; k < config.getNumberOfInnerLoopPasses(); k++) {
         // Step 1: De-trending
-        for (int i = 0; i < series.length; i++) {
+        for (int i = 0; i < numberOfDataPoints; i++) {
           detrend[i] = series[i] - trend[i];
         }
 
@@ -122,7 +147,7 @@ public class StlDecomposition {
         }
 
         // Step 3: Low-Pass Filtering of Smoothed Cycle-Subseries
-        double[] filtered = lowPassFilter(combinedSmoothed, robustness);
+        double[] filtered = lowPassFilter(times, combinedSmoothed, robustness);
 
         // Step 4: Detrending of Smoothed Cycle-Subseries
         for (int i = 0; i < seasonal.length; i++) {
@@ -130,7 +155,7 @@ public class StlDecomposition {
         }
 
         // Step 5: Deseasonalizing
-        for (int i = 0; i < series.length; i++) {
+        for (int i = 0; i < numberOfDataPoints; i++) {
           trend[i] = series[i] - seasonal[i];
         }
 
@@ -141,7 +166,7 @@ public class StlDecomposition {
       // --- Now in outer loop ---
 
       // Calculate remainder
-      for (int i = 0; i < series.length; i++) {
+      for (int i = 0; i < numberOfDataPoints; i++) {
         remainder[i] = series[i] - trend[i] - seasonal[i];
       }
 
@@ -154,14 +179,14 @@ public class StlDecomposition {
         // Compute weighted mean for one season
         double sum = 0.0;
         int count = 0;
-        for (int j = i; j < config.getNumberOfDataPoints(); j += config.getNumberOfObservations()) {
+        for (int j = i; j < numberOfDataPoints; j += config.getNumberOfObservations()) {
           sum += seasonal[j];
           count++;
         }
         double mean = sum / count;
 
         // Copy this to rest of seasons
-        for (int j = i; j < config.getNumberOfDataPoints(); j += config.getNumberOfObservations()) {
+        for (int j = i; j < numberOfDataPoints; j += config.getNumberOfObservations()) {
           seasonal[j] = mean;
         }
       }
@@ -175,19 +200,52 @@ public class StlDecomposition {
     return new StlResult(times, series, trend, seasonal, remainder);
   }
 
+  /**
+   * The cycle subseries of a time series.
+   *
+   * <p>
+   *   The cycle subseries is a set of series whose members are of length
+   *   N, where N is the number of observations in a season.
+   * </p>
+   *
+   * <p>
+   *   For example, if we have monthly data from 1990 to 2000, the cycle
+   *   subseries would be [[Jan_1990, Jan_1991, ...], ..., [Dec_1990, Dec_1991]].
+   * </p>
+   */
   private static class CycleSubSeries {
-    // Output
+    /** Output: The list of cycle subseries series data. */
     private final List<double[]> cycleSubSeries = new ArrayList<double[]>();
+    /** Output: The list of cycle subseries times. */
     private final List<double[]> cycleTimes = new ArrayList<double[]>();
+    /** Output: The list of cycle subseries robustness weights. */
     private final List<double[]> cycleRobustnessWeights = new ArrayList<double[]>();
 
-    // Input
+    /** Input: The number of observations in a season. */
     private final int numberOfObservations;
+    /** Input: The input times. */
     private final double[] times;
+    /** Input: The input series data. */
     private final double[] series;
+    /** Input: The robustness weights, from STL. */
     private final double[] robustness;
+    /** Input: The de-trended series, from STL. */
     private final double[] detrend;
 
+    /**
+     * Constructs a cycle subseries computation.
+     *
+     * @param times
+     *  The input times.
+     * @param series
+     *  A dependent variable on times.
+     * @param robustness
+     *  The robustness weights from STL loop.
+     * @param detrend
+     *  The de-trended data.
+     * @param numberOfObservations
+     *  The number of observations in a season.
+     */
     CycleSubSeries(double[] times,
                    double[] series,
                    double[] robustness,
@@ -200,25 +258,45 @@ public class StlDecomposition {
       this.numberOfObservations = numberOfObservations;
     }
 
-    public List<double[]> getCycleSubSeries() {
+    /**
+     * @return
+     *  A list of size numberOfObservations, whose elements are of length
+     *  times.length / numberOfObservations: the cycle subseries.
+     */
+    List<double[]> getCycleSubSeries() {
       return cycleSubSeries;
     }
 
-    public List<double[]> getCycleTimes() {
+    /**
+     * @return The times corresponding to getCycleSubSeries.
+     */
+    List<double[]> getCycleTimes() {
       return cycleTimes;
     }
 
-    public List<double[]> getCycleRobustnessWeights() {
+    /**
+     * @return The robustness weights corresponding to getCycleSubSeries.
+     */
+    List<double[]> getCycleRobustnessWeights() {
       return cycleRobustnessWeights;
     }
 
+    /**
+     * Computes the cycle subseries of the input.
+     *
+     * <p>
+     *   Must call this before getters return anything meaningful.
+     * </p>
+     */
     void compute() {
       for (int i = 0; i < numberOfObservations; i++) {
         int subseriesLength = series.length / numberOfObservations;
         subseriesLength += (i < series.length % numberOfObservations) ? 1 : 0;
+
         double[] subseriesValues = new double[subseriesLength];
         double[] subseriesTimes = new double[subseriesLength];
         double[] subseriesRobustnessWeights = null;
+
         if (robustness != null) {
           subseriesRobustnessWeights = new double[subseriesLength];
         }
@@ -243,6 +321,14 @@ public class StlDecomposition {
     }
   }
 
+  /**
+   * Computes robustness weights using bisquare weight function.
+   *
+   * @param remainder
+   *  The remainder, series - trend - seasonal.
+   * @return
+   *  A new array containing the robustness weights.
+   */
   private double[] robustnessWeights(double[] remainder) {
     // Compute "h" = 6 median(|R_v|)
     double[] absRemainder = new double[remainder.length];
@@ -261,6 +347,17 @@ public class StlDecomposition {
     return robustness;
   }
 
+  /**
+   * The bisquare weight function.
+   *
+   * @param value
+   *  Any real number.
+   * @return
+   *  <pre>
+   *    (1 - value^2)^2 for 0 <= value < 1
+   *    0 for value > 1
+   *  </pre>
+   */
   private double biSquareWeight(double value) {
     if (value < 0) {
       throw new IllegalArgumentException("Invalid value, must be >= 0: " + value);
@@ -271,48 +368,84 @@ public class StlDecomposition {
     }
   }
 
-  private double[] lowPassFilter(double[] series, double[] weights) {
+  /**
+   * A low pass filter used on combined smoothed cycle subseries.
+   *
+   * <p>
+   *   The filter consists of the following steps:
+   *   <ol>
+   *     <li>Moving average of length n_p, seasonal size</li>
+   *     <li>Moving average of length 3, (magic number from paper)</li>
+   *     <li>Loess smoothing</li>
+   *   </ol>
+   * </p>
+   *
+   * @param times
+   *  The times.
+   * @param series
+   *  The time series data.
+   * @param weights
+   *  Weights to use in Loess stage.
+   * @return
+   *  A smoother, less noisy series.
+   */
+  private double[] lowPassFilter(double[] times, double[] series, double[] weights) {
     // Apply moving average of length n_p
     series = movingAverage(series, config.getNumberOfObservations());
     // Apply moving average of length 3
     series = movingAverage(series, 3);
     // Loess smoothing with d = 1, q = n_l
-    series = loessSmooth(series, config.getLowPassFilterBandwidth(), weights);
+    series = loessSmooth(times, series, config.getLowPassFilterBandwidth(), weights);
     return series;
   }
 
   /**
-   * Performs weighted Loess smoothing on a series, assuming contiguous time.
+   * Performs weighted Loess smoothing on a series.
    *
+   * <p>
+   *   Does not assume contiguous time.
+   * </p>
+   *
+   * @param times
+   *  The times.
+   * @param series
+   *  The time series data.
+   * @param bandwidth
+   *  The amount of neighbor points to consider for each point in Loess.
    * @param weights
-   *          The weights to use for smoothing, if null, equal weights are
-   *          assumed
-   * @return Smoothed series
+   *  The weights to use for smoothing, if null, equal weights are assumed.
+   * @return
+   *  Loess-smoothed series.
    */
-  private double[] loessSmooth(double[] series, double bandwidth, double[] weights) {
-    double[] times = new double[series.length];
-    for (int i = 0; i < series.length; i++) {
-      times[i] = i;
+  private double[] loessSmooth(double[] times,
+                               double[] series,
+                               double bandwidth,
+                               double[] weights) {
+    if (weights == null) {
+      return new LoessInterpolator(
+          bandwidth,
+          config.getLoessRobustnessIterations()).smooth(times, series);
+    } else {
+      return new LoessInterpolator(
+          bandwidth,
+          config.getLoessRobustnessIterations()).smooth(times, series, weights);
     }
-    return loessSmooth(times, series, bandwidth, weights);
   }
 
   /**
-   * Performs weighted Loess smoothing on a time series.
+   * Computes the moving average.
    *
-   * @param weights
-   *          The weights to use for smoothing, if null, equal weights are
-   *          assumed
-   * @return Smoothed series
+   * <p>
+   *   The first "window" values are meaningless in the return value.
+   * </p>
+   *
+   * @param series
+   *  An input series of data.
+   * @param window
+   *  The moving average sliding window.
+   * @return
+   *  A new series that contains moving average of series.
    */
-  private double[] loessSmooth(double[] times, double[] series, double bandwidth, double[] weights) {
-    if (weights == null) {
-      return new LoessInterpolator(bandwidth, config.getLoessRobustnessIterations()).smooth(times, series);
-    } else {
-      return new LoessInterpolator(bandwidth, config.getLoessRobustnessIterations()).smooth(times, series, weights);
-    }
-  }
-
   private double[] movingAverage(double[] series, int window) {
     double[] movingAverage = new double[series.length];
 
