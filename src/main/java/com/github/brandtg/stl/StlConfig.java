@@ -25,9 +25,9 @@ public final class StlConfig {
   /** Consider 75% neighboring points smoothing in low pass filter. */
   private static final double DEFAULT_LOW_PASS_FILTER_BANDWIDTH = 0.75;
   /** Consider 100% neighboring points smoothing trend in inner loop. */
-  private static final double DEFAULT_TREND_BANDWIDTH = 1.0;
+  private static final double DEFAULT_TREND_BANDWIDTH = 0.75;
   /** Consider 100% neighboring points smoothing seasonal in inner loop. */
-  private static final double DEFAULT_SEASONAL_BANDWIDTH = 1.0;
+  private static final double DEFAULT_SEASONAL_BANDWIDTH = 0.75;
   /** The same value as STL in R. */
   private static final int DEFAULT_LOESS_ROBUSTNESS_ITERATIONS = 4;
 
