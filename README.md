@@ -37,4 +37,4 @@ And optionally plot the results (n.b. `StlPlotter` is in test scope)
 StlPlotter.plotOnScreen(stl, "Seasonal Decomposition");
 ```
 
-![STL result chart](doc/figure_1.png)
+![STL result chart](figure_1.png)
