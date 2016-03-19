@@ -104,4 +104,12 @@ public class TestStlDecomposition {
           new DateTime((long) ts[i]), expectedTrend[i], trend[i], error, errorBound));
     }
   }
+
+  @Test
+  public void testSetDifferentConfig() {
+    StlDecomposition stl = new StlDecomposition(12);
+    Assert.assertEquals(stl.getConfig().getNumberOfRobustnessIterations(), 1);
+    stl.getConfig().setNumberOfRobustnessIterations(10);
+    Assert.assertEquals(stl.getConfig().getNumberOfRobustnessIterations(), 10);
+  }
 }
