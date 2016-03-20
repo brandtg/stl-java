@@ -164,8 +164,6 @@ public class StlPlotter {
     BufferedReader reader = new BufferedReader(new InputStreamReader(is));
 
     try {
-      reader.readLine(); // header
-
       String line;
       while ((line = reader.readLine()) != null) {
         String[] tokens = line.split(",");
