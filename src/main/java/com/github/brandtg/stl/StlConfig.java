@@ -19,17 +19,17 @@ package com.github.brandtg.stl;
  */
 public final class StlConfig {
   /** Empirically determined number resulted in good residuals. */
-  private static final int DEFAULT_INNER_LOOP_PASSES = 10;
+  protected static final int DEFAULT_INNER_LOOP_PASSES = 10;
   /** Same as R's robust = FALSE. */
-  private static final int DEFAULT_ROBUSTNESS_ITERATIONS = 1;
-  /** Consider 75% neighboring points smoothing in low pass filter. */
-  private static final double DEFAULT_LOW_PASS_FILTER_BANDWIDTH = 0.75;
-  /** Consider 100% neighboring points smoothing trend in inner loop. */
-  private static final double DEFAULT_TREND_BANDWIDTH = 0.75;
-  /** Consider 100% neighboring points smoothing seasonal in inner loop. */
-  private static final double DEFAULT_SEASONAL_BANDWIDTH = 0.75;
+  protected static final int DEFAULT_ROBUSTNESS_ITERATIONS = 1;
+  /** Consider 25% neighboring points smoothing in low pass filter. */
+  protected static final double DEFAULT_LOW_PASS_FILTER_BANDWIDTH = 0.25;
+  /** Consider 75% neighboring points smoothing trend in inner loop. */
+  protected static final double DEFAULT_TREND_BANDWIDTH = 0.75;
+  /** Consider 75% neighboring points smoothing seasonal in inner loop. */
+  protected static final double DEFAULT_SEASONAL_BANDWIDTH = 0.75;
   /** The same value as STL in R. */
-  private static final int DEFAULT_LOESS_ROBUSTNESS_ITERATIONS = 4;
+  protected static final int DEFAULT_LOESS_ROBUSTNESS_ITERATIONS = 4;
 
   /** n_p: The number of observations in each cycle of seasonal component. */
   private final int numberOfObservations;
@@ -203,7 +203,16 @@ public final class StlConfig {
               "2 * Periodicity (numberOfObservations) points");
     }
 
-    // TODO: Check n_t, needs to be n_t >= 1.5 * n_p / (1 - 1.5/n_s)
+    // Check n_t, needs to be n_t >= 1.5 * n_p / (1 - 1.5/n_s)
+    double trendWindow = trendComponentBandwidth * numberOfDataPoints;
+    double seasonalWindow = seasonalComponentBandwidth * numberOfDataPoints;
+    double minTrendWindow = 1.5 * numberOfObservations /
+        (1 - 1.5 / seasonalWindow);
+    if (trendWindow < minTrendWindow) {
+      throw new IllegalArgumentException("Trend component bandwidth too " +
+          "small: trendWindow=" + trendWindow + " min=" + minTrendWindow);
+    }
+
     if (periodic) {
       double windowSpan = (1.5 * numberOfObservations) /
           (1.0 - 1.5 / (numberOfDataPoints * 10.0 + 1.0)) /
