@@ -493,16 +493,26 @@ public class StlDecomposition {
     }
 
     // Compute STL
-    StlResult stl = new StlDecomposition(Integer.valueOf(args[0])).decompose(times, measures);
+    StlDecomposition stl = new StlDecomposition(Integer.valueOf(args[0]));
+    stl.getConfig().setLowPassFilterBandwidth(
+        Double.valueOf(System.getProperty(
+            "low.pass.bandwidth", String.valueOf(StlConfig.DEFAULT_LOW_PASS_FILTER_BANDWIDTH))));
+    stl.getConfig().setSeasonalComponentBandwidth(
+        Double.valueOf(System.getProperty(
+            "seasonal.bandwidth", String.valueOf(StlConfig.DEFAULT_SEASONAL_BANDWIDTH))));
+    stl.getConfig().setTrendComponentBandwidth(
+        Double.valueOf(System.getProperty(
+            "trend.bandwidth", String.valueOf(StlConfig.DEFAULT_TREND_BANDWIDTH))));
+    StlResult res = stl.decompose(times, measures);
 
     // Output to STDOUT
     for (int i = 0; i < times.size(); i++) {
       System.out.println(String.format("%d,%02f,%02f,%02f,%02f",
-          (long) stl.getTimes()[i],
-          stl.getSeries()[i],
-          stl.getTrend()[i],
-          stl.getSeasonal()[i],
-          stl.getRemainder()[i]));
+          (long) res.getTimes()[i],
+          res.getSeries()[i],
+          res.getTrend()[i],
+          res.getSeasonal()[i],
+          res.getRemainder()[i]));
     }
   }
 }
