@@ -17,6 +17,8 @@ package com.github.brandtg.stl;
 import org.apache.commons.math3.analysis.interpolation.LoessInterpolator;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -463,5 +465,44 @@ public class StlDecomposition {
     }
 
     return movingAverage;
+  }
+
+  /**
+   * Runs STL on a CSV of time,measure.
+   *
+   * <p>
+   *   Outputs a CSV of time,measure,trend,seasonal,remainder.
+   * </p>
+   *
+   * @param args
+   *  args[0] = numberOfObservations
+   * @throws Exception
+   *  If could not process data
+   */
+  public static void main(String[] args) throws Exception {
+    List<Number> times = new ArrayList<Number>();
+    List<Number> measures = new ArrayList<Number>();
+
+    // Read from STDIN
+    String line;
+    BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+    while ((line = reader.readLine()) != null) {
+      String[] tokens = line.split(",");
+      times.add(Long.valueOf(tokens[0]));
+      measures.add(Double.valueOf(tokens[1]));
+    }
+
+    // Compute STL
+    StlResult stl = new StlDecomposition(Integer.valueOf(args[0])).decompose(times, measures);
+
+    // Output to STDOUT
+    for (int i = 0; i < times.size(); i++) {
+      System.out.println(String.format("%d,%02f,%02f,%02f,%02f",
+          (long) stl.getTimes()[i],
+          stl.getSeries()[i],
+          stl.getTrend()[i],
+          stl.getSeasonal()[i],
+          stl.getRemainder()[i]));
+    }
   }
 }
