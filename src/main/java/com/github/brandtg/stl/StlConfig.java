@@ -220,5 +220,24 @@ public final class StlConfig {
             "small: trendWindow=" + trendWindow + " min=" + minTrendWindow);
       }
     }
+
+    // Ensure trend bandwidth in points is >= 2
+    // n.b. We use numberOfDataPoints because this applies to combined series
+    int trendBandwidthInPoints = (int) (trendComponentBandwidth * numberOfDataPoints);
+    if (trendBandwidthInPoints < 2) {
+      throw new IllegalArgumentException("Trend component bandwidth " +
+          trendComponentBandwidth + " is too small, maps to " +
+          trendBandwidthInPoints + " points");
+    }
+
+    // Ensure trend bandwidth in points is >= 2
+    // n.b. We use numberOfObservations because this applies to cycle subseries
+    int numSeasons = numberOfDataPoints / numberOfObservations;
+    int seasonalBandwidthInPoints = (int) (seasonalComponentBandwidth * numSeasons);
+    if (seasonalBandwidthInPoints < 2) {
+      throw new IllegalArgumentException("Seasonal component bandwidth " +
+          seasonalComponentBandwidth + " is too small, maps to " +
+          seasonalBandwidthInPoints + " points");
+    }
   }
 }
