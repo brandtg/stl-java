@@ -174,12 +174,23 @@ public class StlPlotter {
       is.close();
     }
 
-    StlResult result = new StlDecomposition(Integer.valueOf(args[0])).decompose(times, series);
+    // Compute STL
+    StlDecomposition stl = new StlDecomposition(Integer.valueOf(args[0]));
+    stl.getConfig().setLowPassFilterBandwidth(
+        Double.valueOf(System.getProperty(
+            "low.pass.bandwidth", String.valueOf(StlConfig.DEFAULT_LOW_PASS_FILTER_BANDWIDTH))));
+    stl.getConfig().setSeasonalComponentBandwidth(
+        Double.valueOf(System.getProperty(
+            "seasonal.bandwidth", String.valueOf(StlConfig.DEFAULT_SEASONAL_BANDWIDTH))));
+    stl.getConfig().setTrendComponentBandwidth(
+        Double.valueOf(System.getProperty(
+            "trend.bandwidth", String.valueOf(StlConfig.DEFAULT_TREND_BANDWIDTH))));
+    StlResult res = stl.decompose(times, series);
 
     if (args.length == 3) {
-      plot(result, new File(args[2]));
+      plot(res, new File(args[2]));
     } else {
-      plotOnScreen(result, "Seasonal Decomposition");
+      plotOnScreen(res, "Seasonal Decomposition");
     }
   }
 }
