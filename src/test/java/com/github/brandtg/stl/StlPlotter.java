@@ -178,6 +178,10 @@ public class StlPlotter {
 
     StlResult result = new StlDecomposition(Integer.valueOf(args[0])).decompose(times, series);
 
-    plotOnScreen(result, "Seasonal Decomposition");
+    if (args.length == 3) {
+      plot(result, new File(args[2]));
+    } else {
+      plotOnScreen(result, "Seasonal Decomposition");
+    }
   }
 }
