@@ -157,37 +157,44 @@ public class StlPlotter {
   }
 
   public static void main(String[] args) throws Exception {
-    List<Number> times = new ArrayList<Number>();
-    List<Number> series = new ArrayList<Number>();
+    List<Double> times = new ArrayList<Double>();
+    List<Double> series = new ArrayList<Double>();
+    List<Double> trend = new ArrayList<Double>();
+    List<Double> seasonal = new ArrayList<Double>();
+    List<Double> remainder = new ArrayList<Double>();
 
-    InputStream is = new FileInputStream(args[1]);
-    BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-
-    try {
-      String line;
-      while ((line = reader.readLine()) != null) {
-        String[] tokens = line.split(",");
-        times.add(Long.valueOf(tokens[0]));
-        series.add(Double.valueOf(tokens[1]));
-      }
-    } finally {
-      is.close();
+    // Read from STDIN
+    String line;
+    BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+    while ((line = reader.readLine()) != null) {
+      String[] tokens = line.split(",");
+      times.add(Double.valueOf(tokens[0]));
+      series.add(Double.valueOf(tokens[1]));
+      trend.add(Double.valueOf(tokens[2]));
+      seasonal.add(Double.valueOf(tokens[3]));
+      remainder.add(Double.valueOf(tokens[4]));
     }
 
-    // Compute STL
-    StlDecomposition stl = new StlDecomposition(Integer.valueOf(args[0]));
-    stl.getConfig().setSeasonalComponentBandwidth(
-        Double.valueOf(System.getProperty(
-            "seasonal.bandwidth", String.valueOf(StlConfig.DEFAULT_SEASONAL_BANDWIDTH))));
-    stl.getConfig().setTrendComponentBandwidth(
-        Double.valueOf(System.getProperty(
-            "trend.bandwidth", String.valueOf(StlConfig.DEFAULT_TREND_BANDWIDTH))));
-    StlResult res = stl.decompose(times, series);
+
+    StlResult res = new StlResult(
+        convert(times),
+        convert(series),
+        convert(trend),
+        convert(seasonal),
+        convert(remainder));
 
     if (args.length == 3) {
       plot(res, new File(args[2]));
     } else {
       plotOnScreen(res, "Seasonal Decomposition");
     }
+  }
+
+  private static double[] convert(List<Double> list) {
+    double[] array = new double[list.size()];
+    for (int i = 0; i < list.size(); i++) {
+      array[i] = list.get(i);
+    }
+    return array;
   }
 }
