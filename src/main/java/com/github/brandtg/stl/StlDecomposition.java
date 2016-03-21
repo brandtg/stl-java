@@ -113,7 +113,14 @@ public class StlDecomposition {
     double[] remainder = new double[numberOfDataPoints];
     double[] robustness = null;
     double[] detrend = new double[numberOfDataPoints];
-    double[] combinedSmoothed = new double[numberOfDataPoints];
+    double[] combinedSmoothed = new double[numberOfDataPoints +
+        2 * config.getNumberOfObservations()];
+
+    double[] combinedSmoothedTimes = new double[numberOfDataPoints +
+        2 * config.getNumberOfObservations()];
+    for (int i = 0; i < combinedSmoothedTimes.length; i++) {
+      combinedSmoothedTimes[i] = i;
+    }
 
     for (int l = 0; l < config.getNumberOfRobustnessIterations(); l++) {
       for (int k = 0; k < config.getNumberOfInnerLoopPasses(); k++) {
@@ -122,7 +129,7 @@ public class StlDecomposition {
           detrend[i] = series[i] - trend[i];
         }
 
-        // Get cycle sub-series with padding on either side
+        // Get cycle sub-series
         int numberOfObservations = config.getNumberOfObservations();
         CycleSubSeries cycle = new CycleSubSeries(times, series, robustness, detrend, numberOfObservations);
         cycle.compute();
@@ -132,11 +139,31 @@ public class StlDecomposition {
 
         // Step 2: Cycle-subseries Smoothing
         for (int i = 0; i < cycleSubseries.size(); i++) {
+          // Pad times
+          double[] paddedTimes = new double[cycleTimes.get(i).length + 2];
+          for (int j = 0; j < paddedTimes.length; j++) {
+            paddedTimes[j] = j;
+          }
+
+          // Pad series
+          double[] paddedSeries = new double[cycleSubseries.get(i).length + 2];
+          System.arraycopy(cycleSubseries.get(i), 0, paddedSeries, 1, cycleSubseries.get(i).length);
+
+          // Pad weights
+          double[] weights = cycleRobustnessWeights.get(i);
+          double[] paddedWeights = null;
+          if (weights != null) {
+            paddedWeights = new double[weights.length + 2];
+            System.arraycopy(weights, 0, paddedWeights, 1, weights.length);
+          }
+
+          // Loess smoothing
           double[] smoothed = loessSmooth(
-              cycleTimes.get(i),
-              cycleSubseries.get(i),
+              paddedTimes,
+              paddedSeries,
               config.getSeasonalComponentBandwidth(),
-              cycleRobustnessWeights.get(i));
+              paddedWeights);
+
           cycleSubseries.set(i, smoothed);
         }
 
@@ -149,11 +176,12 @@ public class StlDecomposition {
         }
 
         // Step 3: Low-Pass Filtering of Smoothed Cycle-Subseries
-        double[] filtered = lowPassFilter(times, combinedSmoothed, null);
+        double[] filtered = lowPassFilter(combinedSmoothedTimes, combinedSmoothed, null);
 
         // Step 4: Detrending of Smoothed Cycle-Subseries
+        int offset = config.getNumberOfObservations();
         for (int i = 0; i < seasonal.length; i++) {
-          seasonal[i] = combinedSmoothed[i] - filtered[i];
+          seasonal[i] = combinedSmoothed[i + offset] - filtered[i + offset];
         }
 
         // Step 5: Deseasonalizing
@@ -399,7 +427,8 @@ public class StlDecomposition {
     // Determine bandwidth as a percentage of points
     double lowPassBandwidth = nextOdd / series.length;
 
-    // Apply moving average of length n_p
+    // Apply moving average of length n_p, twice
+    series = movingAverage(series, config.getNumberOfObservations());
     series = movingAverage(series, config.getNumberOfObservations());
     // Apply moving average of length 3
     series = movingAverage(series, 3);
@@ -507,6 +536,9 @@ public class StlDecomposition {
     stl.getConfig().setTrendComponentBandwidth(
         Double.valueOf(System.getProperty(
             "trend.bandwidth", String.valueOf(StlConfig.DEFAULT_TREND_BANDWIDTH))));
+    stl.getConfig().setNumberOfInnerLoopPasses(
+        Integer.valueOf(System.getProperty(
+            "inner.loop", String.valueOf(StlConfig.DEFAULT_INNER_LOOP_PASSES))));
     StlResult res = stl.decompose(times, measures);
 
     // Output to STDOUT

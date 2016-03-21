@@ -25,7 +25,7 @@ public final class StlConfig {
   /** Consider 75% neighboring points smoothing trend in inner loop. */
   protected static final double DEFAULT_TREND_BANDWIDTH = 0.20;
   /** Consider 75% neighboring points smoothing seasonal in inner loop. */
-  protected static final double DEFAULT_SEASONAL_BANDWIDTH = 0.20;
+  protected static final double DEFAULT_SEASONAL_BANDWIDTH = 0.40;
   /** Number of robustness iterations for each invocation of Loess. */
   protected static final int DEFAULT_LOESS_ROBUSTNESS_ITERATIONS = 0;
 
@@ -184,6 +184,21 @@ public final class StlConfig {
               "2 * Periodicity (numberOfObservations) points");
     }
 
+    // Ensure trend bandwidth in points is >= 2
+    // n.b. We use numberOfDataPoints because this applies to combined series
+    int trendBandwidthInPoints = (int) (trendComponentBandwidth * numberOfDataPoints);
+    if (trendBandwidthInPoints < 2) {
+      setTrendComponentBandwidth(2.0 / numberOfDataPoints);
+    }
+
+    // Ensure trend bandwidth in points is >= 2
+    // n.b. We use numberOfObservations because this applies to cycle subseries
+    int numSeasons = numberOfDataPoints / numberOfObservations;
+    int seasonalBandwidthInPoints = (int) (seasonalComponentBandwidth * numSeasons);
+    if (seasonalBandwidthInPoints < 2) {
+      setSeasonalComponentBandwidth(2.0 / numSeasons);
+    }
+
     if (periodic) {
       // Override trend component bandwidth
       double windowSpan = (1.5 * numberOfObservations) /
@@ -200,21 +215,6 @@ public final class StlConfig {
         throw new IllegalArgumentException("Trend component bandwidth too " +
             "small: trendWindow=" + trendWindow + " min=" + minTrendWindow);
       }
-    }
-
-    // Ensure trend bandwidth in points is >= 2
-    // n.b. We use numberOfDataPoints because this applies to combined series
-    int trendBandwidthInPoints = (int) (trendComponentBandwidth * numberOfDataPoints);
-    if (trendBandwidthInPoints < 2) {
-      setTrendComponentBandwidth(2.0 / numberOfDataPoints);
-    }
-
-    // Ensure trend bandwidth in points is >= 2
-    // n.b. We use numberOfObservations because this applies to cycle subseries
-    int numSeasons = numberOfDataPoints / numberOfObservations;
-    int seasonalBandwidthInPoints = (int) (seasonalComponentBandwidth * numSeasons);
-    if (seasonalBandwidthInPoints < 2) {
-      setSeasonalComponentBandwidth(2.0 / numSeasons);
     }
   }
 }
