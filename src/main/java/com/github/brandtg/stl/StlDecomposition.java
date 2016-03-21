@@ -149,7 +149,7 @@ public class StlDecomposition {
         }
 
         // Step 3: Low-Pass Filtering of Smoothed Cycle-Subseries
-        double[] filtered = lowPassFilter(times, combinedSmoothed, robustness);
+        double[] filtered = lowPassFilter(times, combinedSmoothed, null);
 
         // Step 4: Detrending of Smoothed Cycle-Subseries
         for (int i = 0; i < seasonal.length; i++) {
