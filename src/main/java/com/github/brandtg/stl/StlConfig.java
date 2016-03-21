@@ -23,9 +23,9 @@ public final class StlConfig {
   /** Same as R's robust = FALSE. */
   protected static final int DEFAULT_ROBUSTNESS_ITERATIONS = 1;
   /** Consider 75% neighboring points smoothing trend in inner loop. */
-  protected static final double DEFAULT_TREND_BANDWIDTH = 0.75;
+  protected static final double DEFAULT_TREND_BANDWIDTH = 0.20;
   /** Consider 75% neighboring points smoothing seasonal in inner loop. */
-  protected static final double DEFAULT_SEASONAL_BANDWIDTH = 0.75;
+  protected static final double DEFAULT_SEASONAL_BANDWIDTH = 0.20;
   /** Number of robustness iterations for each invocation of Loess. */
   protected static final int DEFAULT_LOESS_ROBUSTNESS_ITERATIONS = 0;
 
@@ -206,9 +206,7 @@ public final class StlConfig {
     // n.b. We use numberOfDataPoints because this applies to combined series
     int trendBandwidthInPoints = (int) (trendComponentBandwidth * numberOfDataPoints);
     if (trendBandwidthInPoints < 2) {
-      throw new IllegalArgumentException("Trend component bandwidth " +
-          trendComponentBandwidth + " is too small, maps to " +
-          trendBandwidthInPoints + " points");
+      setTrendComponentBandwidth(2.0 / numberOfDataPoints);
     }
 
     // Ensure trend bandwidth in points is >= 2
@@ -216,9 +214,7 @@ public final class StlConfig {
     int numSeasons = numberOfDataPoints / numberOfObservations;
     int seasonalBandwidthInPoints = (int) (seasonalComponentBandwidth * numSeasons);
     if (seasonalBandwidthInPoints < 2) {
-      throw new IllegalArgumentException("Seasonal component bandwidth " +
-          seasonalComponentBandwidth + " is too small, maps to " +
-          seasonalBandwidthInPoints + " points");
+      setSeasonalComponentBandwidth(2.0 / numSeasons);
     }
   }
 }
