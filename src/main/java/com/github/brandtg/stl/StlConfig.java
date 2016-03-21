@@ -22,8 +22,6 @@ public final class StlConfig {
   protected static final int DEFAULT_INNER_LOOP_PASSES = 10;
   /** Same as R's robust = FALSE. */
   protected static final int DEFAULT_ROBUSTNESS_ITERATIONS = 1;
-  /** Consider 25% neighboring points smoothing in low pass filter. */
-  protected static final double DEFAULT_LOW_PASS_FILTER_BANDWIDTH = 0.25;
   /** Consider 75% neighboring points smoothing trend in inner loop. */
   protected static final double DEFAULT_TREND_BANDWIDTH = 0.75;
   /** Consider 75% neighboring points smoothing seasonal in inner loop. */
@@ -37,8 +35,6 @@ public final class StlConfig {
   private int numberOfInnerLoopPasses = DEFAULT_INNER_LOOP_PASSES;
   /** n_o: The number of robustness iterations of the outer loop. */
   private int numberOfRobustnessIterations = DEFAULT_ROBUSTNESS_ITERATIONS;
-  /** n_l: The smoothing parameter for the low pass filter. */
-  private double lowPassFilterBandwidth = DEFAULT_LOW_PASS_FILTER_BANDWIDTH;
   /** n_t: The smoothing parameter for the trend component. */
   private double trendComponentBandwidth = DEFAULT_TREND_BANDWIDTH;
   /** n_s: The smoothing parameter for the seasonal component. */
@@ -100,21 +96,6 @@ public final class StlConfig {
    */
   public void setNumberOfRobustnessIterations(int numberOfRobustnessIterations) {
     this.numberOfRobustnessIterations = numberOfRobustnessIterations;
-  }
-
-  /**
-   * @return The % of points considered by Loess for low pass filter.
-   */
-  public double getLowPassFilterBandwidth() {
-    return lowPassFilterBandwidth;
-  }
-
-  /**
-   * @param lowPassFilterBandwidth
-   *  The % of points considered by Loess for low pass filter.
-   */
-  public void setLowPassFilterBandwidth(double lowPassFilterBandwidth) {
-    this.lowPassFilterBandwidth = lowPassFilterBandwidth;
   }
 
   /**

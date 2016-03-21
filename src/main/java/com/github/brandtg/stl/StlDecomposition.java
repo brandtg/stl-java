@@ -392,12 +392,19 @@ public class StlDecomposition {
    *  A smoother, less noisy series.
    */
   private double[] lowPassFilter(double[] times, double[] series, double[] weights) {
+    // Find the next odd integer >= n_p (see: section 3.4)
+    double nextOdd = config.getNumberOfObservations() % 2 == 1 ?
+        config.getNumberOfObservations() :
+        config.getNumberOfObservations() + 1;
+    // Determine bandwidth as a percentage of points
+    double lowPassBandwidth = nextOdd / series.length;
+
     // Apply moving average of length n_p
     series = movingAverage(series, config.getNumberOfObservations());
     // Apply moving average of length 3
     series = movingAverage(series, 3);
     // Loess smoothing with d = 1, q = n_l
-    series = loessSmooth(times, series, config.getLowPassFilterBandwidth(), weights);
+    series = loessSmooth(times, series, lowPassBandwidth, weights);
     return series;
   }
 
@@ -494,9 +501,6 @@ public class StlDecomposition {
 
     // Compute STL
     StlDecomposition stl = new StlDecomposition(Integer.valueOf(args[0]));
-    stl.getConfig().setLowPassFilterBandwidth(
-        Double.valueOf(System.getProperty(
-            "low.pass.bandwidth", String.valueOf(StlConfig.DEFAULT_LOW_PASS_FILTER_BANDWIDTH))));
     stl.getConfig().setSeasonalComponentBandwidth(
         Double.valueOf(System.getProperty(
             "seasonal.bandwidth", String.valueOf(StlConfig.DEFAULT_SEASONAL_BANDWIDTH))));

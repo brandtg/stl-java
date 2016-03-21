@@ -176,9 +176,6 @@ public class StlPlotter {
 
     // Compute STL
     StlDecomposition stl = new StlDecomposition(Integer.valueOf(args[0]));
-    stl.getConfig().setLowPassFilterBandwidth(
-        Double.valueOf(System.getProperty(
-            "low.pass.bandwidth", String.valueOf(StlConfig.DEFAULT_LOW_PASS_FILTER_BANDWIDTH))));
     stl.getConfig().setSeasonalComponentBandwidth(
         Double.valueOf(System.getProperty(
             "seasonal.bandwidth", String.valueOf(StlConfig.DEFAULT_SEASONAL_BANDWIDTH))));
