@@ -183,8 +183,8 @@ public class StlPlotter {
         convert(seasonal),
         convert(remainder));
 
-    if (args.length == 3) {
-      plot(res, new File(args[2]));
+    if (args.length == 1) {
+      plot(res, new File(args[0]));
     } else {
       plotOnScreen(res, "Seasonal Decomposition");
     }
