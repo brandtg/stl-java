@@ -11,7 +11,7 @@ To include this library in your project, add the following dependency
 <dependency>
   <groupId>com.github.brandtg</groupId>
   <artifactId>stl-java</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
 </dependency>
 ```
 
