@@ -15,6 +15,9 @@
 package com.github.brandtg.stl;
 
 import org.apache.commons.math3.analysis.interpolation.LoessInterpolator;
+import org.apache.commons.math3.analysis.interpolation.NevilleInterpolator;
+import org.apache.commons.math3.analysis.polynomials.PolynomialFunctionLagrangeForm;
+import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import java.io.BufferedReader;
@@ -139,22 +142,16 @@ public class StlDecomposition {
 
         // Step 2: Cycle-subseries Smoothing
         for (int i = 0; i < cycleSubseries.size(); i++) {
-          // Pad times
-          double[] paddedTimes = new double[cycleTimes.get(i).length + 2];
-          for (int j = 0; j < paddedTimes.length; j++) {
-            paddedTimes[j] = j;
-          }
-
-          // Pad series
-          double[] paddedSeries = new double[cycleSubseries.get(i).length + 2];
-          System.arraycopy(cycleSubseries.get(i), 0, paddedSeries, 1, cycleSubseries.get(i).length);
+          // Pad times / values
+          TimesAndValues padded = padEdges(cycleTimes.get(i), cycleSubseries.get(i));
+          double[] paddedTimes = padded.getTs();
+          double[] paddedSeries = padded.getXs();
 
           // Pad weights
           double[] weights = cycleRobustnessWeights.get(i);
           double[] paddedWeights = null;
           if (weights != null) {
-            paddedWeights = new double[weights.length + 2];
-            System.arraycopy(weights, 0, paddedWeights, 1, weights.length);
+            paddedWeights = padEdges(cycleTimes.get(i), weights).getXs();
           }
 
           // Loess smoothing
@@ -501,6 +498,46 @@ public class StlDecomposition {
     }
 
     return movingAverage;
+  }
+
+  private static class TimesAndValues {
+    private final double[] ts;
+    private final double[] xs;
+
+    TimesAndValues(double[] ts, double[] xs) {
+      this.ts = ts;
+      this.xs = xs;
+    }
+
+    public double[] getTs() {
+      return ts;
+    }
+
+    public double[] getXs() {
+      return xs;
+    }
+  }
+
+  private TimesAndValues padEdges(double[] ts, double[] xs) {
+    // Find step between times
+    double step = Math.abs(ts[1] - ts[0]);
+    // Times (assuming uniform
+    double[] paddedTimes = new double[ts.length + 2];
+    System.arraycopy(ts, 0, paddedTimes, 1, ts.length);
+    paddedTimes[0] = paddedTimes[1] - step;
+    paddedTimes[paddedTimes.length - 1] = paddedTimes[paddedTimes.length - 2] + step;
+
+    // Series
+    double[] paddedSeries = new double[xs.length + 2];
+    System.arraycopy(xs, 0, paddedSeries, 1, xs.length);
+
+    // Extrapolate both sides as per:
+    // http://stackoverflow.com/questions/36656857/extrapolation-outofrangeexception-apache-commons-math
+    PolynomialFunctionLagrangeForm interpolate = new NevilleInterpolator().interpolate(ts, xs);
+    paddedSeries[0] = interpolate.value(paddedTimes[0]);
+    paddedSeries[paddedSeries.length - 1] = interpolate.value(paddedTimes[paddedTimes.length - 1]);
+
+    return new TimesAndValues(paddedTimes, paddedSeries);
   }
 
   /**

@@ -13,7 +13,11 @@
  */
 package com.github.brandtg.stl;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.jfree.data.time.Hour;
 import org.testng.Assert;
@@ -23,6 +27,39 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class PlotTest {
+  @Test
+  public void testMinimalCase() throws Exception {
+    List<Number> times = new ArrayList<Number>();
+    List<Number> measures = new ArrayList<Number>();
+
+    // Read from STDIN
+    String line;
+    BufferedReader reader = new BufferedReader(new InputStreamReader(ClassLoader.getSystemResourceAsStream("minimal.csv")));
+    while ((line = reader.readLine()) != null) {
+      String[] tokens = line.split(",");
+      times.add(Long.valueOf(tokens[0]));
+      measures.add(Double.valueOf(tokens[1]));
+    }
+
+    StlDecomposition stl = new StlDecomposition(288);
+    stl.getConfig().setTrendComponentBandwidth(0.751);
+    stl.getConfig().setSeasonalComponentBandwidth(0.85);
+    // TODO: With default 10 we get decent results, but with 1 the head end seems a little off
+//    stl.getConfig().setNumberOfInnerLoopPasses(1);
+    stl.getConfig().setPeriodic(false);
+    StlResult res = stl.decompose(times, measures);
+
+    // TODO: Validate more somehow (from https://github.com/brandtg/stl-java/issues/9)
+//    for (int i = 0; i < times.size(); i++) {
+//      System.out.println(String.format("%d,%02f,%02f,%02f,%02f",
+//          (long) res.getTimes()[i],
+//          res.getSeries()[i],
+//          res.getTrend()[i],
+//          res.getSeasonal()[i],
+//          res.getRemainder()[i]));
+//    }
+  }
+
   @Test
   public void testPlot() throws Exception {
     final ObjectMapper objectMapper = new ObjectMapper();
