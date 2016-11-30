@@ -318,7 +318,6 @@ public class StlDecomposition {
     void compute() {
       for (int i = 0; i < numberOfObservations; i++) {
         int subseriesLength = series.length / numberOfObservations;
-        subseriesLength += (i < series.length % numberOfObservations) ? 1 : 0;
 
         double[] subseriesValues = new double[subseriesLength];
         double[] subseriesTimes = new double[subseriesLength];
@@ -484,16 +483,20 @@ public class StlDecomposition {
   private double[] movingAverage(double[] series, int window) {
     double[] movingAverage = new double[series.length];
 
-    // Initialize
     double average = 0;
     for (int i = 0; i < window; i++) {
       average += series[i] / window;
       movingAverage[i] = average;
     }
 
-    for (int i = window; i < series.length; i++) {
+    for (int i = window; i < series.length - window; i++) {
       average -= series[i - window] / window;
       average += series[i] / window;
+      movingAverage[i] = average;
+    }
+
+    for (int i = series.length - window; i < series.length; i++) {
+      average -= series[i] / window;
       movingAverage[i] = average;
     }
 
@@ -531,11 +534,31 @@ public class StlDecomposition {
     double[] paddedSeries = new double[xs.length + 2];
     System.arraycopy(xs, 0, paddedSeries, 1, xs.length);
 
-    // Extrapolate both sides as per:
-    // http://stackoverflow.com/questions/36656857/extrapolation-outofrangeexception-apache-commons-math
-    PolynomialFunctionLagrangeForm interpolate = new NevilleInterpolator().interpolate(ts, xs);
-    paddedSeries[0] = interpolate.value(paddedTimes[0]);
-    paddedSeries[paddedSeries.length - 1] = interpolate.value(paddedTimes[paddedTimes.length - 1]);
+    // Use Loess at ends to pad
+    // n.b. For some reason, this can result in NaN values - perhaps similar to
+    // https://issues.apache.org/jira/browse/MATH-296. If we see NaN, just "extrapolate" by copying
+    // the end points :(
+
+    double left = paddedSeries[1];
+    double right = paddedSeries[paddedSeries.length - 2];
+
+    double bandwidth = 0.3;
+    if (ts.length * bandwidth > 2) {
+      PolynomialSplineFunction loess = new LoessInterpolator(bandwidth, 2).interpolate(ts, xs);
+
+      double loessLeft = loess.value(ts[0]);
+      if (!Double.isNaN(loessLeft)) {
+        left = loessLeft;
+      }
+
+      double loessRight = loess.value(ts[ts.length - 1]);
+      if (!Double.isNaN(loessRight)) {
+        right = loessRight;
+      }
+    }
+
+    paddedSeries[0] = left;
+    paddedSeries[paddedSeries.length - 1] = right;
 
     return new TimesAndValues(paddedTimes, paddedSeries);
   }
